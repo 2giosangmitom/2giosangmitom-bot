@@ -1,5 +1,6 @@
 DPP_ROOT = ${DPP_ROOT_DIR}
-CXXFLAGS := -std=c++23 -I$(DPP_ROOT)/include
+NLOHMANN_JSON_ROOT = ${NLOHMANN_JSON_DIR}
+CXXFLAGS := -std=c++23 -I$(DPP_ROOT)/include -I$(NLOHMANN_JSON_ROOT)/include
 LDFLAGS := -L$(DPP_ROOT)/lib -ldpp
 CXX := clang++
 

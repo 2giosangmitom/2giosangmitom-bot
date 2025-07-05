@@ -16,8 +16,11 @@
         clang
         bear
         dpp
+        nodejs_22
+        nlohmann_json
       ];
-      DPP_ROOT_DIR="${pkgs.dpp}";
+      DPP_ROOT_DIR = "${pkgs.dpp}";
+      NLOHMANN_JSON_DIR = "${pkgs.nlohmann_json}";
     };
     formatter.${system} = pkgs.alejandra;
   };
