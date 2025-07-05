@@ -2,6 +2,7 @@
 #include <dpp/dpp.h>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <numeric>
 #include <optional>
 #include <random>
 #include <stdexcept>
@@ -97,6 +98,16 @@ vector<Question> pick_random_questions(const vector<Question> &questions,
   return result;
 }
 
+string join(const vector<string> &vec, const string &sep) {
+  string result;
+  for (size_t i = 0; i < vec.size(); ++i) {
+    result += vec[i];
+    if (i + 1 < vec.size())
+      result += sep;
+  }
+  return result;
+}
+
 int main() {
   Data data;
 
@@ -146,8 +157,15 @@ int main() {
 
           string msg = "Here are your random questions:\n";
           for (const auto &q : random_questions) {
-            msg += "- [" + q.title + "](https://leetcode.com/problems/" +
-                   q.titleSlug + "/) (" + q.difficulty + ")\n";
+            vector<string> topics(q.topicTags.size());
+            for (size_t i = 0; i < q.topicTags.size(); i++) {
+              topics[i] = q.topicTags[i].name;
+            }
+
+            msg += std::format(
+                "- [{}]({}) [{}] ({})\n", q.title,
+                std::format("https://leetcode.com/problems/{}", q.titleSlug),
+                join(topics, ", "), q.difficulty);
           }
 
           event.reply(dpp::message(msg).set_allowed_mentions(false));
