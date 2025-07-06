@@ -356,36 +356,44 @@ int main() {
 
     // Register slash commands after bot is ready
     bot.on_ready([&bot, &data, &topic_set](const dpp::ready_t &event) {
-      auto update_presence = [&bot, &event](auto) {
-        std::string status =
-            format("Sleeping in {} servers", event.guild_count);
-        bot.set_presence(dpp::presence(dpp::ps_online,
-                                       dpp::activity_type::at_custom, status));
-      };
+      // Set presence
+      if (dpp::run_once<struct set_presence>()) {
+        auto update_presence = [&bot, &event](auto) {
+          std::string status =
+              format("Sleeping in {} servers", event.guild_count);
+          bot.set_presence(dpp::presence(
+              dpp::ps_online, dpp::activity_type::at_custom, status));
+        };
 
-      auto update_data = [&data, &topic_set, &bot](auto) {
-        data = get_data(bot);
-        for (const auto &q : data.questions) {
-          for (const auto &t : q.topicTags) {
-            topic_set.insert(t.name);
+        update_presence(nullptr);
+        // Update presence every 10 minutes
+        bot.start_timer(update_presence, 600);
+      }
+
+      // Update data
+      if (dpp::run_once<struct update_data>()) {
+        // Update data
+        auto update_data = [&data, &topic_set, &bot](auto) {
+          data = get_data(bot);
+          for (const auto &q : data.questions) {
+            for (const auto &t : q.topicTags) {
+              topic_set.insert(t.name);
+            }
           }
-        }
-      };
+        };
 
-      update_presence(nullptr);
-      update_data(nullptr);
+        update_data(nullptr);
+        // Update data every 24 hours
+        bot.start_timer(update_data, 86400, [&topic_set](auto) {
+          if (std::filesystem::exists("data.json")) {
+            std::cout << "Deleted \"data.json\"" << std::endl;
+            std::filesystem::remove("data.json");
+            topic_set.clear();
+          }
+        });
+      }
 
-      // Update presence every 10 minutes
-      bot.start_timer(update_presence, 600);
-      // Update data every 24 hours
-      bot.start_timer(update_data, 86400, [&topic_set](auto) {
-        if (std::filesystem::exists("data.json")) {
-          std::cout << "Deleted \"data.json\"" << std::endl;
-          std::filesystem::remove("data.json");
-          topic_set.clear();
-        }
-      });
-
+      // Register bot commands
       if (dpp::run_once<struct register_bot_commands>()) {
         dpp::slashcommand get_questions(
             "get_questions", "Get random free LeetCode questions", bot.me.id);
