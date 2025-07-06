@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 #include <numeric>
 #include <optional>
+#include <ostream>
 #include <print>
 #include <random>
 #include <set>
@@ -346,13 +347,17 @@ int main() {
         });
 
         // Register slash commands after bot is ready
-        bot.on_ready([&bot, &data, &topic_set](const dpp::ready_t &) {
+        bot.on_ready([&bot, &data, &topic_set](const dpp::ready_t &event) {
             data = get_data(bot);
             for (const auto &q : data.questions) {
                 for (const auto &t : q.topicTags) {
                     topic_set.insert(t.name);
                 }
             }
+
+            string status = format("Sleeping in {} servers", event.guild_count);
+            bot.set_presence(dpp::presence(
+                dpp::ps_online, dpp::activity_type::at_custom, status));
 
             if (dpp::run_once<struct register_bot_commands>()) {
                 dpp::slashcommand get_questions(
