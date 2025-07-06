@@ -1,3 +1,4 @@
+#include "dpp/colors.h"
 #include <algorithm>
 #include <atomic>
 #include <dpp/dpp.h>
@@ -55,6 +56,15 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Question, id, questionFrontendId, title,
                                    titleSlug, topicTags, difficulty, paidOnly,
                                    acRate);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Data, totalLength, questions);
+
+// Data model for waifu.pics response
+struct WaifuPicsRes {
+  string url;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(WaifuPicsRes, url);
+
+const vector<string> image_categories{"waifu", "hug", "kiss", "happy",
+                                      "handhold"};
 
 // Load Discord Bot token from "token.txt"
 string get_token() {
@@ -251,8 +261,9 @@ int main() {
     std::set<string> topic_set;
 
     // Slash command handler
-    bot.on_slashcommand([&data](const dpp::slashcommand_t &event) {
-      if (event.command.get_command_name() == "get_questions") {
+    bot.on_slashcommand([&data, &bot](const dpp::slashcommand_t &event) {
+      auto command_name = event.command.get_command_name();
+      if (command_name == "get_questions") {
         try {
           std::optional<string> difficulty, topic;
           int quantity = 1;
@@ -316,6 +327,66 @@ int main() {
         } catch (const std::exception &e) {
           event.reply(format("Error: {}", e.what()));
         }
+      } else if (command_name == "motivation") {
+        std::optional<std::string> category;
+        auto category_param = event.get_parameter("category");
+
+        if (std::holds_alternative<std::string>(category_param)) {
+          category = std::get<std::string>(category_param);
+        }
+
+        if (!category.has_value() || category->empty()) {
+          if (!image_categories.empty()) {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_int_distribution<> dist(0,
+                                                 image_categories.size() - 1);
+            category = image_categories[dist(gen)];
+          } else {
+            event.reply("No image categories available!");
+            return;
+          }
+        }
+
+        const std::string waifu_pics_url =
+            format("https://api.waifu.pics/sfw/{}", category.value());
+
+        event.thinking(); // Defer reply
+
+        bot.request(
+            waifu_pics_url, dpp::m_get,
+            [event, category](const dpp::http_request_completion_t &cc) {
+              try {
+                nlohmann::json res = nlohmann::json::parse(cc.body);
+                WaifuPicsRes waifu_res = res.get<WaifuPicsRes>();
+
+                const std::vector<std::string> titles = {
+                    "Here's Your Daily Dose of Motivation ✨",
+                    "A Waifu Appears! 💖", "Stay Strong, Senpai! 💪",
+                    "You Got This! Here's Some Motivation 🔥",
+                    "Summoning Your Waifu... 💫"};
+
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<> dist(0, titles.size() - 1);
+                const std::string random_title = titles[dist(gen)];
+
+                dpp::embed embed = dpp::embed()
+                                       .set_color(dpp::colors::alien_green)
+                                       .set_title(random_title)
+                                       .set_description(format(
+                                           "Category: {}", category.value()))
+                                       .set_image(waifu_res.url)
+                                       .set_footer(dpp::embed_footer().set_text(
+                                           "Powered by 2giosangmitom-bot"))
+                                       .set_timestamp(time(0));
+
+                event.edit_original_response(
+                    dpp::message(event.command.channel_id, embed));
+              } catch (const std::exception &e) {
+                event.edit_original_response(dpp::message(e.what()));
+              }
+            });
       }
     });
 
@@ -347,6 +418,19 @@ int main() {
                   dpp::command_option_choice(topic, topic));
             }
           }
+          bot.interaction_response_create(event.command.id, event.command.token,
+                                          res);
+          break;
+        } else if (opt.focused && opt.name == "category") {
+          dpp::interaction_response res(dpp::ir_autocomplete_reply);
+
+          for (const auto &category_name : image_categories) {
+            if (query.empty() || category_name.find(query) != string::npos) {
+              res.add_autocomplete_choice(
+                  dpp::command_option_choice(category_name, category_name));
+            }
+          }
+
           bot.interaction_response_create(event.command.id, event.command.token,
                                           res);
           break;
@@ -393,7 +477,14 @@ int main() {
         get_questions.add_option(dpp::command_option(
             dpp::co_number, "quantity", "Number of questions", false));
 
-        bot.global_bulk_command_create({get_questions});
+        dpp::slashcommand motivation(
+            "motivation", "Get random cute anime girl to enhance motivation :)",
+            bot.me.id);
+        motivation.add_option(dpp::command_option(dpp::co_string, "category",
+                                                  "Image category", false)
+                                  .set_auto_complete(true));
+
+        bot.global_bulk_command_create({get_questions, motivation});
       }
     });
 
