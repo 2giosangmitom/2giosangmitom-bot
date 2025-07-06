@@ -356,20 +356,6 @@ int main() {
 
     // Register slash commands after bot is ready
     bot.on_ready([&bot, &data, &topic_set](const dpp::ready_t &event) {
-      // Set presence
-      if (dpp::run_once<struct set_presence>()) {
-        auto update_presence = [&bot, &event](auto) {
-          std::string status =
-              format("Sleeping in {} servers", event.guild_count);
-          bot.set_presence(dpp::presence(
-              dpp::ps_online, dpp::activity_type::at_custom, status));
-        };
-
-        update_presence(nullptr);
-        // Update presence every 10 minutes
-        bot.start_timer(update_presence, 600);
-      }
-
       // Update data
       if (dpp::run_once<struct update_data>()) {
         // Update data
