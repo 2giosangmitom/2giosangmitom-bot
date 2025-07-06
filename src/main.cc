@@ -356,6 +356,11 @@ int main() {
             };
 
             auto update_data = [&data, &topic_set, &bot](auto) {
+                if (std::filesystem::exists("data.json")) {
+                    std::cout << "Deleted \"data.json\"" << std::endl;
+                    std::filesystem::remove("data.json");
+                    topic_set.clear();
+                }
                 data = get_data(bot);
                 for (const auto &q : data.questions) {
                     for (const auto &t : q.topicTags) {
