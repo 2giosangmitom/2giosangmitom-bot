@@ -375,7 +375,7 @@ int main() {
                                        .set_color(dpp::colors::alien_green)
                                        .set_title(random_title)
                                        .set_description(format(
-                                           "Category: {}", category.value()))
+                                           "_Category: {}_", category.value()))
                                        .set_image(waifu_res.url)
                                        .set_footer(dpp::embed_footer().set_text(
                                            "Powered by 2giosangmitom-bot"))
