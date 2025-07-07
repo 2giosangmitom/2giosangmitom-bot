@@ -48,9 +48,16 @@ A simple Discord bot that fetches random **LeetCode** questions. Supports filter
    ./build/2giosangmitom-bot
    ```
 
+## 🤡 Special features
+
+- Get random anime girl image for motivation :)
+- ...update later :)
+
 ## 🖼️ Preview
 
-![preview](preview.png)
+![leetcode preview](./assets/leetcode_preview.png)
+
+![motivation preview](./assets/motivation_preview.png)
 
 ## ➕ Invite the bot to your server
 
