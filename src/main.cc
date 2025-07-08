@@ -66,6 +66,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(WaifuPicsRes, url);
 const vector<string> image_categories{"waifu",    "hug",  "kiss", "happy",
                                       "handhold", "kick", "bite"};
 
+// NSFW image categories
+const vector<string> nsfw_image_categories{"waifu", "neko", "trap", "blowjob"};
+
 // Convert a string to lowercase
 string to_lower(const string &s) {
   string result = s;
@@ -625,6 +628,90 @@ int main() {
         } catch (const std::exception &e) {
           event.reply(format("Error: {}", e.what()));
         }
+      } else if (command_name == "nsfw") {
+        try {
+          // Check if the channel is marked as NSFW
+          if (!event.command.channel.is_nsfw()) {
+            event.reply("❌ This command can only be used in NSFW channels!");
+            return;
+          }
+
+          std::optional<std::string> category;
+
+          if (!category.has_value() || category->empty()) {
+            if (!nsfw_image_categories.empty()) {
+              std::random_device rd;
+              std::mt19937 gen(rd());
+              std::uniform_int_distribution<> dist(
+                  0, nsfw_image_categories.size() - 1);
+              category = nsfw_image_categories[dist(gen)];
+            } else {
+              event.reply("No NSFW image categories available!");
+              return;
+            }
+          }
+
+          const std::string waifu_pics_url =
+              format("https://api.waifu.pics/nsfw/{}", category.value());
+
+          event.thinking();
+
+          bot.request(
+              waifu_pics_url, dpp::m_get,
+              [event, category](const dpp::http_request_completion_t &cc) {
+                try {
+                  if (cc.status != 200) {
+                    event.edit_original_response(dpp::message(
+                        "Failed to fetch image. Please try again."));
+                    return;
+                  }
+
+                  const nlohmann::json res = nlohmann::json::parse(cc.body);
+                  const WaifuPicsRes waifu_res = res.get<WaifuPicsRes>();
+
+                  if (waifu_res.url.empty()) {
+                    event.edit_original_response(
+                        dpp::message("Received empty image URL."));
+                    return;
+                  }
+
+                  const vector<string> titles = {"🔞 NSFW Content 🔞",
+                                                 "🌶️ Spicy Content Incoming 🌶️",
+                                                 "🔥 Hot Stuff Alert 🔥",
+                                                 "💋 Adult Content 💋",
+                                                 "🌹 For Mature Audiences 🌹",
+                                                 "💜 NSFW Waifu 💜",
+                                                 "🚫 18+ Content 🚫",
+                                                 "🍑 Explicit Material 🍑",
+                                                 "💦 Adult Entertainment 💦",
+                                                 "🔞 Not Safe for Work 🔞"};
+
+                  std::random_device rd;
+                  std::mt19937 gen(rd());
+                  std::uniform_int_distribution<> dist(0, titles.size() - 1);
+                  const std::string random_title = titles[dist(gen)];
+
+                  dpp::embed embed =
+                      dpp::embed()
+                          .set_color(dpp::colors::red)
+                          .set_title(random_title)
+                          .set_description(
+                              format("_Category: {}_", category.value()))
+                          .set_image(waifu_res.url)
+                          .set_footer(dpp::embed_footer().set_text(
+                              "Powered by 2giosangmitom-bot | 18+ Only"))
+                          .set_timestamp(time(0));
+
+                  event.edit_original_response(
+                      dpp::message(event.command.channel_id, embed));
+                } catch (const std::exception &e) {
+                  event.edit_original_response(dpp::message(
+                      format("Error processing image: {}", e.what())));
+                }
+              });
+        } catch (const std::exception &e) {
+          event.reply(format("Error: {}", e.what()));
+        }
       }
     });
 
@@ -766,7 +853,11 @@ int main() {
                                                   "Image category", false)
                                   .set_auto_complete(true));
 
-        bot.global_bulk_command_create({get_questions, motivation});
+        dpp::slashcommand nsfw(
+            "nsfw", "Get random NSFW anime image (NSFW channels only)",
+            bot.me.id);
+
+        bot.global_bulk_command_create({get_questions, motivation, nsfw});
       }
     });
 
