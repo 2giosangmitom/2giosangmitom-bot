@@ -1,6 +1,6 @@
-#include "dpp/colors.h"
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <dpp/dpp.h>
 #include <filesystem>
 #include <format>
@@ -63,8 +63,174 @@ struct WaifuPicsRes {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(WaifuPicsRes, url);
 
-const vector<string> image_categories{"waifu", "hug", "kiss", "happy",
-                                      "handhold"};
+const vector<string> image_categories{"waifu",    "hug",  "kiss", "happy",
+                                      "handhold", "kick", "bite"};
+
+// Convert a string to lowercase
+string to_lower(const string &s) {
+  string result = s;
+  std::transform(result.begin(), result.end(), result.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return result;
+}
+
+// Fuzzy matching structure to store match results
+struct FuzzyMatch {
+  string value;
+  int score;
+
+  bool operator<(const FuzzyMatch &other) const {
+    if (score != other.score) {
+      return score > other.score; // Higher score first
+    }
+    return value < other.value; // Alphabetical for ties
+  }
+};
+
+// FZF-style fuzzy matching algorithm
+class FuzzyMatcher {
+private:
+  static constexpr int MATCH_SCORE = 16;
+  static constexpr int GAP_START = -3;
+  static constexpr int GAP_EXTENSION = -1;
+  static constexpr int BONUS_BOUNDARY = 16;
+  static constexpr int BONUS_NON_WORD = 8;
+  static constexpr int BONUS_CAMEL = 8;
+  static constexpr int BONUS_CONSECUTIVE = 6;
+  static constexpr int BONUS_FIRST_CHAR_MULTIPLIER = 2;
+
+  static bool is_word_boundary(char prev, char curr) {
+    return (prev == ' ' || prev == '_' || prev == '-' || prev == '.' ||
+            (std::islower(prev) && std::isupper(curr)));
+  }
+
+  static bool is_upper(char c) { return c >= 'A' && c <= 'Z'; }
+
+  static bool is_lower(char c) { return c >= 'a' && c <= 'z'; }
+
+public:
+  static std::optional<int> fuzzy_match(const string &pattern,
+                                        const string &text) {
+    if (pattern.empty())
+      return 0;
+    if (text.empty())
+      return std::nullopt;
+
+    const string lower_pattern = to_lower(pattern);
+    const string lower_text = to_lower(text);
+
+    const size_t pattern_len = lower_pattern.length();
+    const size_t text_len = lower_text.length();
+
+    if (pattern_len > text_len)
+      return std::nullopt;
+
+    // Quick check: all pattern characters must exist in text
+    size_t pattern_idx = 0;
+    size_t text_idx = 0;
+
+    while (pattern_idx < pattern_len && text_idx < text_len) {
+      if (lower_pattern[pattern_idx] == lower_text[text_idx]) {
+        pattern_idx++;
+      }
+      text_idx++;
+    }
+
+    if (pattern_idx != pattern_len) {
+      return std::nullopt; // Not all pattern characters found
+    }
+
+    // Calculate detailed score
+    vector<vector<int>> dp(pattern_len + 1, vector<int>(text_len + 1, INT_MIN));
+    vector<vector<int>> gap_dp(pattern_len + 1,
+                               vector<int>(text_len + 1, INT_MIN));
+
+    // Initialize
+    for (size_t j = 0; j <= text_len; j++) {
+      dp[0][j] = 0;
+    }
+
+    for (size_t i = 1; i <= pattern_len; i++) {
+      for (size_t j = 1; j <= text_len; j++) {
+        char pattern_char = lower_pattern[i - 1];
+        char text_char = lower_text[j - 1];
+        char prev_char = (j > 1) ? text[j - 2] : ' ';
+
+        // Gap extension
+        if (j > 1) {
+          gap_dp[i][j] = std::max(gap_dp[i][j - 1] + GAP_EXTENSION,
+                                  dp[i][j - 1] + GAP_START);
+        }
+
+        // Character match
+        if (pattern_char == text_char) {
+          int score = MATCH_SCORE;
+
+          // Bonus for word boundaries
+          if (is_word_boundary(prev_char, text[j - 1])) {
+            score += BONUS_BOUNDARY;
+          }
+          // Bonus for camelCase
+          else if (is_lower(prev_char) && is_upper(text[j - 1])) {
+            score += BONUS_CAMEL;
+          }
+          // Bonus for non-word characters
+          else if (!std::isalnum(prev_char)) {
+            score += BONUS_NON_WORD;
+          }
+
+          // Bonus for consecutive matches
+          if (i > 1 && j > 1 && lower_pattern[i - 2] == lower_text[j - 2]) {
+            score += BONUS_CONSECUTIVE;
+          }
+
+          // Bonus for first character
+          if (i == 1) {
+            score *= BONUS_FIRST_CHAR_MULTIPLIER;
+          }
+
+          dp[i][j] = dp[i - 1][j - 1] + score;
+        }
+
+        // Take the best score so far
+        if (j > 1) {
+          dp[i][j] = std::max(dp[i][j], gap_dp[i][j]);
+        }
+        if (i > 1) {
+          dp[i][j] = std::max(dp[i][j], dp[i - 1][j]);
+        }
+      }
+    }
+
+    return dp[pattern_len][text_len] > INT_MIN
+               ? std::optional<int>(dp[pattern_len][text_len])
+               : std::nullopt;
+  }
+
+  static vector<FuzzyMatch> fuzzy_search(const string &pattern,
+                                         const vector<string> &candidates,
+                                         size_t max_results = 25) {
+    vector<FuzzyMatch> matches;
+    matches.reserve(candidates.size());
+
+    for (const auto &candidate : candidates) {
+      auto score = fuzzy_match(pattern, candidate);
+      if (score.has_value()) {
+        matches.push_back({candidate, score.value()});
+      }
+    }
+
+    // Sort by score (highest first), then alphabetically
+    std::sort(matches.begin(), matches.end());
+
+    // Limit results
+    if (matches.size() > max_results) {
+      matches.resize(max_results);
+    }
+
+    return matches;
+  }
+};
 
 // Load Discord Bot token from "token.txt"
 string get_token() {
@@ -73,22 +239,21 @@ string get_token() {
     throw std::runtime_error("\"token.txt\" file not found!");
   }
   string token;
-  fs >> token;
+  if (!(fs >> token) || token.empty()) {
+    throw std::runtime_error("Invalid or empty token in \"token.txt\"");
+  }
   return token;
-}
-
-// Convert a string to lowercase
-string to_lower(const string &s) {
-  string result = s;
-  std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-  return result;
 }
 
 // Convert a string to titlecase
 string to_title(const string &s) {
+  if (s.empty())
+    return s;
   string result = s;
-  std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-  result[0] = toupper(result[0]);
+  std::transform(result.begin(), result.end(), result.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  result[0] =
+      static_cast<char>(std::toupper(static_cast<unsigned char>(result[0])));
   return result;
 }
 
@@ -97,20 +262,39 @@ vector<Question> filter_questions(const Data &data,
                                   const std::optional<string> &difficulty,
                                   const std::optional<string> &topic) {
   vector<Question> filtered;
+  filtered.reserve(data.questions.size());
 
   for (const auto &q : data.questions) {
     if (q.paidOnly)
       continue;
 
-    if (difficulty.has_value() &&
-        !to_lower(difficulty.value()).contains(to_lower(q.difficulty)))
-      continue;
+    if (difficulty.has_value()) {
+      const string lower_difficulty = to_lower(difficulty.value());
+      const string lower_q_difficulty = to_lower(q.difficulty);
+
+      bool difficulty_matches = false;
+      if (lower_difficulty == "easy to medium") {
+        difficulty_matches =
+            (lower_q_difficulty == "easy" || lower_q_difficulty == "medium");
+      } else if (lower_difficulty == "easy to hard") {
+        difficulty_matches = true;
+      } else if (lower_difficulty == "medium to hard") {
+        difficulty_matches =
+            (lower_q_difficulty == "medium" || lower_q_difficulty == "hard");
+      } else {
+        difficulty_matches = (lower_q_difficulty == lower_difficulty);
+      }
+
+      if (!difficulty_matches)
+        continue;
+    }
 
     if (topic.has_value()) {
-      bool has_topic = std::any_of(
-          q.topicTags.begin(), q.topicTags.end(), [&](const Topic &t) {
-            return to_lower(t.name) == to_lower(topic.value());
-          });
+      const string lower_topic = to_lower(topic.value());
+      bool has_topic = std::any_of(q.topicTags.begin(), q.topicTags.end(),
+                                   [&lower_topic](const Topic &t) {
+                                     return to_lower(t.name) == lower_topic;
+                                   });
 
       if (!has_topic)
         continue;
@@ -129,6 +313,10 @@ vector<Question> pick_random_questions(const vector<Question> &questions,
     throw std::runtime_error("No matching free questions found.");
   }
 
+  if (quantity <= 0) {
+    throw std::invalid_argument("Quantity must be positive");
+  }
+
   vector<Question> result;
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -136,9 +324,11 @@ vector<Question> pick_random_questions(const vector<Question> &questions,
   if (quantity >= static_cast<int>(questions.size())) {
     result = questions;
   } else {
-    vector<int> indices(questions.size());
+    vector<size_t> indices(questions.size());
     std::iota(indices.begin(), indices.end(), 0);
     std::shuffle(indices.begin(), indices.end(), gen);
+
+    result.reserve(quantity);
     for (int i = 0; i < quantity; ++i) {
       result.push_back(questions[indices[i]]);
     }
@@ -201,52 +391,75 @@ query problemsetQuestionListV2($filters: QuestionFilterInput, $limit: Int, $skip
                                       {"variables", variables}};
     const std::string post_data_str = post_data.dump();
 
-    // Promise/future to wait for HTTP request
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
 
-    // Spinner setup
     std::atomic<bool> spinner_running(true);
     std::thread spinner_thread(spinner, std::ref(spinner_running),
                                "Fetching data");
 
-    // Send HTTP request
     bot.request(
         "https://leetcode.com/graphql", dpp::m_post,
         [&promise,
          &spinner_running](const dpp::http_request_completion_t &cc) mutable {
           try {
+            if (cc.status != 200) {
+              std::cerr << "HTTP request failed with status: " << cc.status
+                        << '\n';
+              spinner_running = false;
+              promise.set_exception(std::make_exception_ptr(
+                  std::runtime_error("HTTP request failed")));
+              return;
+            }
+
             std::ofstream ofs("data.json", std::ios::binary);
+            if (!ofs) {
+              throw std::runtime_error("Failed to create data.json");
+            }
             ofs.exceptions(std::ofstream::failbit | std::ofstream::badbit);
             ofs.write(cc.body.data(),
                       static_cast<std::streamsize>(cc.body.size()));
             ofs.close();
-          } catch (const std::ios_base::failure &e) {
-            std::cerr << "File I/O error: " << e.what() << '\n';
+          } catch (const std::exception &e) {
+            std::cerr << "Error saving data: " << e.what() << '\n';
+            spinner_running = false;
+            promise.set_exception(std::current_exception());
+            return;
           }
           spinner_running = false;
           promise.set_value();
         },
         post_data_str, "application/json");
 
-    // Wait for HTTP request and spinner to finish
-    future.wait();
+    try {
+      future.get();
+    } catch (const std::exception &e) {
+      spinner_thread.join();
+      throw;
+    }
     spinner_thread.join();
     std::cout << "Data saved to 'data.json'\n";
   }
 
-  // Parse "data.json"
   std::ifstream ifs("data.json");
   if (!ifs) {
     throw std::runtime_error("Failed to open 'data.json'");
   }
 
   nlohmann::json json_data;
-  ifs >> json_data;
-  Data data = json_data["data"]["problemsetQuestionListV2"].get<Data>();
-  ifs.close();
+  try {
+    ifs >> json_data;
 
-  return data;
+    if (!json_data.contains("data") ||
+        !json_data["data"].contains("problemsetQuestionListV2")) {
+      throw std::runtime_error("Invalid JSON structure in data.json");
+    }
+
+    Data data = json_data["data"]["problemsetQuestionListV2"].get<Data>();
+    return data;
+  } catch (const nlohmann::json::exception &e) {
+    throw std::runtime_error("JSON parsing error: " + std::string(e.what()));
+  }
 }
 
 int main() {
@@ -256,51 +469,47 @@ int main() {
     bot.on_log(dpp::utility::cout_logger());
 
     Data data;
-
-    // Extract unique topic names
     std::set<string> topic_set;
 
     // Slash command handler
     bot.on_slashcommand([&data, &bot](const dpp::slashcommand_t &event) {
-      auto command_name = event.command.get_command_name();
+      const auto command_name = event.command.get_command_name();
+
       if (command_name == "get_questions") {
         try {
           std::optional<string> difficulty, topic;
           int quantity = 1;
 
-          auto diff_param = event.get_parameter("difficulty");
-          if (diff_param.index() != 0) {
+          const auto diff_param = event.get_parameter("difficulty");
+          if (std::holds_alternative<string>(diff_param)) {
             difficulty = std::get<string>(diff_param);
           }
 
-          auto topic_param = event.get_parameter("topic");
-          if (topic_param.index() != 0) {
+          const auto topic_param = event.get_parameter("topic");
+          if (std::holds_alternative<string>(topic_param)) {
             topic = std::get<string>(topic_param);
           }
 
-          auto quantity_param = event.get_parameter("quantity");
-          if (quantity_param.index() != 0) {
+          const auto quantity_param = event.get_parameter("quantity");
+          if (std::holds_alternative<double>(quantity_param)) {
             quantity = static_cast<int>(std::get<double>(quantity_param));
-            if (quantity < 1)
-              quantity = 1;
+            quantity = std::clamp(quantity, 1, 13);
           }
 
-          if (quantity > 13)
-            quantity = 13;
-
-          auto filtered = filter_questions(data, difficulty, topic);
-          auto random_questions = pick_random_questions(filtered, quantity);
+          const auto filtered = filter_questions(data, difficulty, topic);
+          const auto random_questions =
+              pick_random_questions(filtered, quantity);
 
           std::ostringstream desc;
           for (const auto &q : random_questions) {
-            string difficulty_str = to_title(q.difficulty);
+            const string difficulty_str = to_title(q.difficulty);
             string topic_list;
             if (!q.topicTags.empty()) {
               topic_list = q.topicTags[0].name;
               topic_list = std::accumulate(
                   std::next(q.topicTags.begin()), q.topicTags.end(), topic_list,
-                  [](std::string a, const Topic &t) {
-                    return std::move(a) + ", " + t.name;
+                  [](const std::string &a, const Topic &t) {
+                    return a + ", " + t.name;
                   });
             } else {
               topic_list = "(No topics)";
@@ -316,7 +525,7 @@ int main() {
           desc << format("Total: {} question(s)", random_questions.size());
 
           dpp::embed embed = dpp::embed()
-                                 .set_color(0x57F287) // Green
+                                 .set_color(0x57F287)
                                  .set_title("Random LeetCode questions")
                                  .set_description(desc.str())
                                  .set_footer(dpp::embed_footer().set_text(
@@ -328,82 +537,122 @@ int main() {
           event.reply(format("Error: {}", e.what()));
         }
       } else if (command_name == "motivation") {
-        std::optional<std::string> category;
-        auto category_param = event.get_parameter("category");
+        try {
+          std::optional<std::string> category;
+          const auto category_param = event.get_parameter("category");
 
-        if (std::holds_alternative<std::string>(category_param)) {
-          category = std::get<std::string>(category_param);
-        }
-
-        if (!category.has_value() || category->empty()) {
-          if (!image_categories.empty()) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_int_distribution<> dist(0,
-                                                 image_categories.size() - 1);
-            category = image_categories[dist(gen)];
-          } else {
-            event.reply("No image categories available!");
-            return;
+          if (std::holds_alternative<std::string>(category_param)) {
+            category = std::get<std::string>(category_param);
           }
+
+          if (!category.has_value() || category->empty()) {
+            if (!image_categories.empty()) {
+              std::random_device rd;
+              std::mt19937 gen(rd());
+              std::uniform_int_distribution<> dist(0,
+                                                   image_categories.size() - 1);
+              category = image_categories[dist(gen)];
+            } else {
+              event.reply("No image categories available!");
+              return;
+            }
+          }
+
+          const std::string waifu_pics_url =
+              format("https://api.waifu.pics/sfw/{}", category.value());
+
+          event.thinking();
+
+          bot.request(
+              waifu_pics_url, dpp::m_get,
+              [event, category](const dpp::http_request_completion_t &cc) {
+                try {
+                  if (cc.status != 200) {
+                    event.edit_original_response(dpp::message(
+                        "Failed to fetch image. Please try again."));
+                    return;
+                  }
+
+                  const nlohmann::json res = nlohmann::json::parse(cc.body);
+                  const WaifuPicsRes waifu_res = res.get<WaifuPicsRes>();
+
+                  if (waifu_res.url.empty()) {
+                    event.edit_original_response(
+                        dpp::message("Received empty image URL."));
+                    return;
+                  }
+
+                  const vector<string> titles = {
+                      "Here's Your Daily Dose of Motivation ✨",
+                      "A Waifu Appears! 💖",
+                      "Stay Strong, Senpai! 💪",
+                      "You Got This! Here's Some Motivation 🔥",
+                      "Summoning Your Waifu... 💫",
+                      "Your Waifu Believes in You! 🌸",
+                      "Power Up Time! 🚀",
+                      "Don't Give Up, Senpai! 💥",
+                      "Waifu Buff Activated! ⚡",
+                      "Keep Going, You're Doing Great! 🌟",
+                      "One Step Closer to Victory! 🏆",
+                      "Level Up Your Spirit! 🆙",
+                      "Another Day, Another Quest! 🗺️",
+                      "You're Stronger Than You Think! 🐉",
+                      "Waifu's Blessing Incoming! 🍀"};
+
+                  std::random_device rd;
+                  std::mt19937 gen(rd());
+                  std::uniform_int_distribution<> dist(0, titles.size() - 1);
+                  const std::string random_title = titles[dist(gen)];
+
+                  dpp::embed embed =
+                      dpp::embed()
+                          .set_color(dpp::colors::alien_green)
+                          .set_title(random_title)
+                          .set_description(
+                              format("_Category: {}_", category.value()))
+                          .set_image(waifu_res.url)
+                          .set_footer(dpp::embed_footer().set_text(
+                              "Powered by 2giosangmitom-bot"))
+                          .set_timestamp(time(0));
+
+                  event.edit_original_response(
+                      dpp::message(event.command.channel_id, embed));
+                } catch (const std::exception &e) {
+                  event.edit_original_response(dpp::message(
+                      format("Error processing image: {}", e.what())));
+                }
+              });
+        } catch (const std::exception &e) {
+          event.reply(format("Error: {}", e.what()));
         }
-
-        const std::string waifu_pics_url =
-            format("https://api.waifu.pics/sfw/{}", category.value());
-
-        event.thinking(); // Defer reply
-
-        bot.request(
-            waifu_pics_url, dpp::m_get,
-            [event, category](const dpp::http_request_completion_t &cc) {
-              try {
-                nlohmann::json res = nlohmann::json::parse(cc.body);
-                WaifuPicsRes waifu_res = res.get<WaifuPicsRes>();
-
-                const std::vector<std::string> titles = {
-                    "Here's Your Daily Dose of Motivation ✨",
-                    "A Waifu Appears! 💖", "Stay Strong, Senpai! 💪",
-                    "You Got This! Here's Some Motivation 🔥",
-                    "Summoning Your Waifu... 💫"};
-
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<> dist(0, titles.size() - 1);
-                const std::string random_title = titles[dist(gen)];
-
-                dpp::embed embed = dpp::embed()
-                                       .set_color(dpp::colors::alien_green)
-                                       .set_title(random_title)
-                                       .set_description(format(
-                                           "_Category: {}_", category.value()))
-                                       .set_image(waifu_res.url)
-                                       .set_footer(dpp::embed_footer().set_text(
-                                           "Powered by 2giosangmitom-bot"))
-                                       .set_timestamp(time(0));
-
-                event.edit_original_response(
-                    dpp::message(event.command.channel_id, embed));
-              } catch (const std::exception &e) {
-                event.edit_original_response(dpp::message(e.what()));
-              }
-            });
       }
     });
 
-    // Autocomplete handler
+    // Enhanced Autocomplete handler with fuzzy matching
     bot.on_autocomplete([&bot, &topic_set](const dpp::autocomplete_t &event) {
       for (const auto &opt : event.options) {
-        string query = to_lower(std::get<string>(opt.value));
+        if (!std::holds_alternative<string>(opt.value))
+          continue;
+
+        const string query = std::get<string>(opt.value);
 
         if (opt.focused && opt.name == "difficulty") {
           dpp::interaction_response res(dpp::ir_autocomplete_reply);
-          vector<string> difficulties{"Easy",         "Medium",
-                                      "Hard",         "Easy to Medium",
-                                      "Easy to Hard", "Medium to Hard"};
+          const vector<string> difficulties{"Easy",         "Medium",
+                                            "Hard",         "Easy to Medium",
+                                            "Easy to Hard", "Medium to Hard"};
 
-          for (const auto &d : difficulties) {
-            if (query.empty() || d.find(query) != string::npos) {
+          if (query.empty()) {
+            // Show all options if no query
+            for (const auto &d : difficulties) {
               res.add_autocomplete_choice(dpp::command_option_choice(d, d));
+            }
+          } else {
+            // Use fuzzy matching
+            auto matches = FuzzyMatcher::fuzzy_search(query, difficulties, 6);
+            for (const auto &match : matches) {
+              res.add_autocomplete_choice(
+                  dpp::command_option_choice(match.value, match.value));
             }
           }
 
@@ -412,22 +661,46 @@ int main() {
           break;
         } else if (opt.focused && opt.name == "topic") {
           dpp::interaction_response res(dpp::ir_autocomplete_reply);
-          for (const auto &topic : topic_set) {
-            if (query.empty() || topic.find(query) != string::npos) {
+
+          // Convert set to vector for fuzzy matching
+          vector<string> topics(topic_set.begin(), topic_set.end());
+
+          if (query.empty()) {
+            // Show first 25 topics alphabetically if no query
+            std::sort(topics.begin(), topics.end());
+            size_t limit = std::min(static_cast<size_t>(25), topics.size());
+            for (size_t i = 0; i < limit; ++i) {
               res.add_autocomplete_choice(
-                  dpp::command_option_choice(topic, topic));
+                  dpp::command_option_choice(topics[i], topics[i]));
+            }
+          } else {
+            // Use fuzzy matching
+            auto matches = FuzzyMatcher::fuzzy_search(query, topics, 25);
+            for (const auto &match : matches) {
+              res.add_autocomplete_choice(
+                  dpp::command_option_choice(match.value, match.value));
             }
           }
+
           bot.interaction_response_create(event.command.id, event.command.token,
                                           res);
           break;
         } else if (opt.focused && opt.name == "category") {
           dpp::interaction_response res(dpp::ir_autocomplete_reply);
 
-          for (const auto &category_name : image_categories) {
-            if (query.empty() || category_name.find(query) != string::npos) {
+          if (query.empty()) {
+            // Show all categories if no query
+            for (const auto &category_name : image_categories) {
               res.add_autocomplete_choice(
                   dpp::command_option_choice(category_name, category_name));
+            }
+          } else {
+            // Use fuzzy matching
+            auto matches =
+                FuzzyMatcher::fuzzy_search(query, image_categories, 5);
+            for (const auto &match : matches) {
+              res.add_autocomplete_choice(
+                  dpp::command_option_choice(match.value, match.value));
             }
           }
 
@@ -440,30 +713,39 @@ int main() {
 
     // Register slash commands after bot is ready
     bot.on_ready([&bot, &data, &topic_set](const dpp::ready_t &event) {
-      // Update data
       if (dpp::run_once<struct update_data>()) {
-        // Update data
         auto update_data = [&data, &topic_set, &bot](auto) {
-          data = get_data(bot);
-          for (const auto &q : data.questions) {
-            for (const auto &t : q.topicTags) {
-              topic_set.insert(t.name);
+          try {
+            data = get_data(bot);
+            topic_set.clear();
+            for (const auto &q : data.questions) {
+              for (const auto &t : q.topicTags) {
+                topic_set.insert(t.name);
+              }
             }
+            std::cout << "Data updated successfully. Topics loaded: "
+                      << topic_set.size() << std::endl;
+          } catch (const std::exception &e) {
+            std::cerr << "Failed to update data: " << e.what() << '\n';
           }
         };
 
         update_data(nullptr);
-        // Update data every 24 hours
+
         bot.start_timer(update_data, 86400, [&topic_set](auto) {
-          if (std::filesystem::exists("data.json")) {
-            std::cout << "Deleted \"data.json\"" << std::endl;
-            std::filesystem::remove("data.json");
-            topic_set.clear();
+          try {
+            if (std::filesystem::exists("data.json")) {
+              if (std::filesystem::remove("data.json")) {
+                std::cout << "Deleted \"data.json\"" << std::endl;
+                topic_set.clear();
+              }
+            }
+          } catch (const std::exception &e) {
+            std::cerr << "Failed to clean up data.json: " << e.what() << '\n';
           }
         });
       }
 
-      // Register bot commands
       if (dpp::run_once<struct register_bot_commands>()) {
         dpp::slashcommand get_questions(
             "get_questions", "Get random free LeetCode questions", bot.me.id);
@@ -475,7 +757,7 @@ int main() {
             dpp::command_option(dpp::co_string, "topic", "Topic tag", false)
                 .set_auto_complete(true));
         get_questions.add_option(dpp::command_option(
-            dpp::co_number, "quantity", "Number of questions", false));
+            dpp::co_number, "quantity", "Number of questions (1-13)", false));
 
         dpp::slashcommand motivation(
             "motivation", "Get random cute anime girl to enhance motivation :)",
@@ -491,5 +773,6 @@ int main() {
     bot.start(dpp::st_wait);
   } catch (const std::exception &e) {
     println(stderr, "Fatal error: {}", e.what());
+    return 1;
   }
 }
