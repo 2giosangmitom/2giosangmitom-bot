@@ -266,7 +266,7 @@ private:
     std::cout << "\r" << msg << " ✓" << std::endl;
   }
 
-  // Convert LeetCode API response to our custom format
+  // Convert LeetCode API response to custom format
   void processApiResponse(const nlohmann::json &apiResponse) {
     data.problems.clear();
     data.topics.clear();
