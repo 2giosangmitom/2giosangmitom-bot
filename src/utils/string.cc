@@ -1,17 +1,12 @@
 #include "utils/string.hh"
-#include <chrono>
-#include <iomanip>
+#include <fmt/chrono.h>
+#include <fmt/format.h>
 
 namespace string_utils {
 
-std::string get_timestamp(const char *format) {
-  auto now = std::chrono::system_clock::now();
-  auto time_t = std::chrono::system_clock::to_time_t(now);
-  auto tm = *std::gmtime(&time_t);
-
-  std::ostringstream oss;
-  oss << std::put_time(&tm, format);
-  return oss.str();
+std::string get_timestamp(const char *format = "%Y-%m-%d %H:%M:%S") {
+  std::time_t t = std::time(nullptr);
+  return fmt::format("{:" + std::string(format) + "}", fmt::localtime(t));
 }
 
 } // namespace string_utils
