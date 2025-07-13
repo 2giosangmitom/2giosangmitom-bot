@@ -55,7 +55,6 @@ query problemsetQuestionListV2($filters: QuestionFilterInput, $limit: Int, $skip
        {
            {"skip", 0},
            {"limit", 10000},
-           {"categorySlug", "all-code-essentials"},
            {"filters", {{"filterCombineType", "ALL"}}},
        }},
   };
