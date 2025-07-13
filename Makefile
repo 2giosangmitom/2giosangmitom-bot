@@ -10,7 +10,7 @@ DEBUG_LDFLAGS := -fsanitize=address
 # Targets and directories
 TARGET := 2giosangmitom-bot
 BUILD_DIR := build
-SRC := src/main.cc src/services/leetcode.cc src/services/waifu.cc
+SRC := src/main.cc src/services/leetcode.cc src/services/waifu.cc src/utils/string.cc
 OBJ := $(patsubst src/%.cc,$(BUILD_DIR)/%.o,$(SRC))
 
 # Default target
