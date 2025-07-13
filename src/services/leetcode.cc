@@ -54,7 +54,7 @@ query problemsetQuestionListV2($filters: QuestionFilterInput, $limit: Int, $skip
       {"variables",
        {
            {"skip", 0},
-           {"limit", 3000},
+           {"limit", 10000},
            {"categorySlug", "all-code-essentials"},
            {"filters", {{"filterCombineType", "ALL"}}},
        }},
@@ -197,14 +197,14 @@ bool leetcode::download_data() {
     data.problems.push_back(std::move(problem));
   }
 
-  data.totalProblems = data.problems.size();
-  data.lastUpdated = string_utils::get_timestamp("%d %B %Y");
+  data.metadata.totalProblems = data.problems.size();
+  data.metadata.lastUpdated = string_utils::get_timestamp("%d %B");
 
   nlohmann::json final_json = {
       {"metadata",
        {
-           {"lastUpdated", data.lastUpdated},
-           {"totalProblems", data.totalProblems},
+           {"lastUpdated", data.metadata.lastUpdated},
+           {"totalProblems", data.metadata.totalProblems},
        }},
       {"problems", data.problems},
       {"topics", data.topics},
@@ -232,6 +232,10 @@ leetcode::Data leetcode::load_data_json() {
   } catch (const nlohmann::json::parse_error &e) {
     throw std::runtime_error(
         fmt::format("Failed to parse data.json: {}", e.what()));
+  }
+
+  if (!validate_json(data_json)) {
+    throw std::runtime_error("Invalid format for \"data.json\"");
   }
 
   return data_json.get<leetcode::Data>();

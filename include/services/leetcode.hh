@@ -20,18 +20,23 @@ struct LeetCodeProblem {
   double ac_rate;  // Acceptance rate as a percentage.
 };
 
+// Metadata of the data
+struct MetaData {
+  std::string lastUpdated; // Timestamp of the last data update.
+  int totalProblems;       // Total number of problems included.
+};
+
 // Stores metadata and a collection of LeetCode problems.
 struct Data {
   std::vector<LeetCodeProblem> problems; // List of all LeetCode problems.
   std::set<std::string> topics; // Set of all unique topics across problems.
-  std::string lastUpdated;      // Timestamp of the last data update.
-  int totalProblems;            // Total number of problems included.
+  MetaData metadata;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LeetCodeProblem, id, title, difficulty,
                                    topics, url, is_paid, ac_rate);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Data, problems, topics, lastUpdated,
-                                   totalProblems);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MetaData, lastUpdated, totalProblems);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Data, problems, topics, metadata);
 
 // Downloads the latest data from the LeetCode GraphQL API and caches it
 // to 'data.json'.
