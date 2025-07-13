@@ -8,9 +8,7 @@
 
 namespace leetcode {
 
-/**
- * @brief Represents a single LeetCode problem record.
- */
+// Represents a single LeetCode problem record.
 struct LeetCodeProblem {
   int id;                 // Unique identifier for the problem.
   std::string title;      // Full title of the problem.
@@ -22,9 +20,7 @@ struct LeetCodeProblem {
   double ac_rate;  // Acceptance rate as a percentage.
 };
 
-/**
- * @brief Stores metadata and a collection of LeetCode problems.
- */
+// Stores metadata and a collection of LeetCode problems.
 struct Data {
   std::vector<LeetCodeProblem> problems; // List of all LeetCode problems.
   std::set<std::string> topics; // Set of all unique topics across problems.
@@ -37,29 +33,22 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LeetCodeProblem, id, title, difficulty,
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Data, problems, topics, lastUpdated,
                                    totalProblems);
 
-/**
- * @brief Downloads the latest data from the LeetCode GraphQL API and caches it
- * to 'data.json'.
- * @return True if the download and caching were successful, false otherwise.
- */
+// Downloads the latest data from the LeetCode GraphQL API and caches it
+// to 'data.json'.
 bool download_data();
 
-/**
- * @brief Filters LeetCode problems by difficulty and/or topics.
- * @param difficulty Optional vector of allowed difficulty levels.
- * @param topics Optional vector of required topic tags.
- * @return Vector of LeetCodeProblem records matching the filters.
- */
+// Validate the json data
+bool validate_json(const nlohmann::json &json_data);
+
+// Read data.json file
+Data load_data_json();
+
+// Filters LeetCode problems by difficulty and/or topics.
 std::vector<LeetCodeProblem>
 filter_questions(const std::optional<std::vector<std::string>> &difficulty,
                  const std::optional<std::vector<std::string>> &topics);
 
-/**
- * @brief Selects a random subset of LeetCode problems from a given collection.
- * @param problems The input collection of problems to select from.
- * @param quantity Optional number of problems to return.
- * @return Vector of randomly selected LeetCodeProblem records.
- */
+// Selects a random subset of LeetCode problems from a given collection.
 std::vector<LeetCodeProblem>
 get_questions(const std::vector<LeetCodeProblem> &problems,
               std::optional<int> quantity);
