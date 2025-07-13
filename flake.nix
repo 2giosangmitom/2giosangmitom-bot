@@ -1,5 +1,5 @@
 {
-  description = "My Discord bot";
+  description = "A simple Discord bot that fetches random LeetCode questions";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
@@ -10,16 +10,28 @@
   }: let
     system = "x86_64-linux";
     pkgs = import nixpkgs {inherit system;};
+    lib = nixpkgs.lib;
   in {
-    devShells.${system}.default = pkgs.mkShell {
-      packages = with pkgs; [
-        clang
-        bear
-        dpp
-        nlohmann_json
+    devShells.${system}.default = pkgs.mkShell.override {stdenv = pkgs.clangStdenv;} {
+      packages = [
+        pkgs.dpp
+        pkgs.nlohmann_json
+        pkgs.curl
+        pkgs.spdlog
+        pkgs.fmt
+
+        pkgs.gnumake
+        pkgs.bear
       ];
-      DPP_ROOT_DIR = "${pkgs.dpp}";
-      NLOHMANN_JSON_DIR = "${pkgs.nlohmann_json}";
+
+      CPATH = builtins.concatStringsSep ":" [
+        (lib.makeSearchPathOutput "dev" "include" [pkgs.curl pkgs.spdlog pkgs.fmt])
+        (lib.makeSearchPath "resource-root/include" [pkgs.clang])
+        (lib.makeSearchPath "include" [pkgs.dpp pkgs.nlohmann_json])
+      ];
+    };
+    packages.${system} = {
+      default = pkgs.callPackage ./package.nix {stdenv = pkgs.clangStdenv;};
     };
     formatter.${system} = pkgs.alejandra;
   };
