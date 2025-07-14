@@ -8,6 +8,9 @@
 
 namespace leetcode {
 
+// Values of difficulties
+extern const std::vector<std::string> difficulties;
+
 // Represents a single LeetCode problem record.
 struct LeetCodeProblem {
   int id;                 // Unique identifier for the problem.
@@ -50,12 +53,13 @@ Data load_data_json();
 
 // Filters LeetCode problems by difficulty and/or topics.
 std::vector<LeetCodeProblem>
-filter_questions(const std::optional<std::vector<std::string>> &difficulty,
-                 const std::optional<std::vector<std::string>> &topics);
+filter_questions(const std::vector<LeetCodeProblem> &problems,
+                 std::optional<std::vector<std::string>> &difficulties,
+                 std::optional<std::vector<std::string>> &topics);
 
 // Selects a random subset of LeetCode problems from a given collection.
 std::vector<LeetCodeProblem>
-get_questions(const std::vector<LeetCodeProblem> &problems,
+get_questions(const std::vector<LeetCodeProblem> &filtered_problems,
               std::optional<int> quantity);
 
 } // namespace leetcode

@@ -1,5 +1,7 @@
 #include "services/leetcode.hh"
+#include "utils/random.hh"
 #include "utils/string.hh"
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <curl/curl.h>
@@ -9,10 +11,15 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 // Constants
 static constexpr const char *leetcode_api_url = "https://leetcode.com/graphql";
 static constexpr const char *output_file = "data.json";
+const std::vector<std::string> leetcode::difficulties{"Easy", "Medium", "Hard"};
+
+using leetcode::LeetCodeProblem;
+using nlohmann::json;
 
 // Helper function for libcurl to write received data into a std::ostream
 size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
@@ -23,7 +30,7 @@ size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
 }
 
 // Helper function for building payload data
-nlohmann::json build_graphql_payload() {
+inline json build_graphql_payload() {
   const std::string query = R"(
 query problemsetQuestionListV2($filters: QuestionFilterInput, $limit: Int, $skip: Int) {
   problemsetQuestionListV2(
@@ -61,7 +68,7 @@ query problemsetQuestionListV2($filters: QuestionFilterInput, $limit: Int, $skip
 }
 
 // Helper function for caching API response to "data.json"
-bool write_json_to_file(const nlohmann::json &json) {
+bool write_json_to_file(const json &json) {
   std::ofstream out(output_file, std::ios::out | std::ios::trunc);
   if (!out.is_open()) {
     spdlog::critical("Failed to open '{}' for writing: {}", output_file,
@@ -79,7 +86,7 @@ bool write_json_to_file(const nlohmann::json &json) {
   return true;
 }
 
-bool leetcode::validate_json(const nlohmann::json &json_data) {
+bool leetcode::validate_json(const json &json_data) {
   // Check if "metadata" exists and is an object
   const auto meta_it = json_data.find("metadata");
   if (meta_it == json_data.end() || !meta_it->is_object()) {
@@ -156,9 +163,9 @@ bool leetcode::download_data() {
     return false;
   }
 
-  nlohmann::json json_response;
+  json json_response;
   try {
-    json_response = nlohmann::json::parse(response.str());
+    json_response = json::parse(response.str());
   } catch (const std::exception &e) {
     spdlog::critical("Failed to parse LeetCode response JSON: {}", e.what());
     return false;
@@ -199,7 +206,7 @@ bool leetcode::download_data() {
   data.metadata.totalProblems = data.problems.size();
   data.metadata.lastUpdated = string_utils::get_timestamp("%d %B");
 
-  nlohmann::json final_json = {
+  json final_json = {
       {"metadata",
        {
            {"lastUpdated", data.metadata.lastUpdated},
@@ -224,11 +231,11 @@ leetcode::Data leetcode::load_data_json() {
         fmt::format("Failed to open data.json: {}", strerror(errno)));
   }
 
-  nlohmann::json data_json;
+  json data_json;
 
   try {
     in >> data_json;
-  } catch (const nlohmann::json::parse_error &e) {
+  } catch (const json::parse_error &e) {
     throw std::runtime_error(
         fmt::format("Failed to parse data.json: {}", e.what()));
   }
@@ -238,4 +245,53 @@ leetcode::Data leetcode::load_data_json() {
   }
 
   return data_json.get<leetcode::Data>();
+}
+
+std::vector<LeetCodeProblem> leetcode::filter_questions(
+    const std::vector<LeetCodeProblem> &problems,
+    std::optional<std::vector<std::string>> &difficulties,
+    std::optional<std::vector<std::string>> &topics) {
+  std::vector<LeetCodeProblem> filtered;
+
+  for (auto &q : problems) {
+    if (difficulties.has_value() &&
+        !std::any_of(difficulties->begin(), difficulties->end(),
+                     [&q](std::string &a) { return a == q.difficulty; })) {
+      continue;
+    }
+
+    if (topics.has_value() &&
+        !std::any_of(topics->begin(), topics->end(), [&q](std::string &a) {
+          return std::any_of(
+              q.topics.begin(), q.topics.end(),
+              [&a](std::string &q_topic) { return q_topic == a; });
+        })) {
+      continue;
+    }
+
+    filtered.push_back(q);
+  }
+
+  return filtered;
+}
+
+std::vector<LeetCodeProblem>
+leetcode::get_questions(const std::vector<LeetCodeProblem> &filtered_problems,
+                        std::optional<int> quantity) {
+  if (!quantity.has_value()) {
+    quantity = 1; // Default value
+  }
+  if (quantity.value() > 10) {
+    quantity = 10; // Limit to 10 questions
+  }
+
+  std::vector<LeetCodeProblem> result;
+  int total = filtered_problems.size();
+
+  for (int i = 1; i <= quantity.value(); i++) {
+    int rand_idx = random_utils::random_int_range(0, total - 1);
+    result.push_back(filtered_problems[rand_idx]);
+  }
+
+  return result;
 }
