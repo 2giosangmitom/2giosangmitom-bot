@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Nix
+        uses: DeterminateSystems/determinate-nix-action@v3.7.0
+
+      - name: Use Nix develop environment
+        run: |
+          nix develop --command bash -c "
+            make test && ./build/run_tests
+          "

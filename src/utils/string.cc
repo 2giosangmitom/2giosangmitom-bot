@@ -4,7 +4,7 @@
 
 namespace string_utils {
 
-std::string get_timestamp(const char *format = "%Y-%m-%d %H:%M:%S") {
+std::string get_timestamp(const char *format) {
   std::time_t t = std::time(nullptr);
   return fmt::format("{:" + std::string(format) + "}", fmt::localtime(t));
 }
