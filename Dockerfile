@@ -5,8 +5,12 @@ ENV NIX_CONFIG="experimental-features = nix-command flakes"
 WORKDIR /app
 COPY . .
 
-# Build the binary using flakes
+# Build C++ code
 RUN nix build
 
-# Set correct binary as entrypoint
-ENTRYPOINT ["./result/bin/2giosangmitom-bot"]
+# Install Node.js
+RUN nix-env -iA nixpkgs.nodejs
+
+EXPOSE 8080
+
+CMD node fake-server.cjs & ./result/bin/2giosangmitom-bot
