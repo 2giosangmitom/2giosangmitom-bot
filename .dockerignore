@@ -1,6 +1,11 @@
 build/
+.cache/
+.git/
 compile_commands.json
 token.txt
-.cache/
 data.json
 result
+assets/
+tests/
+README.md
+token.txt
