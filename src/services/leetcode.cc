@@ -29,7 +29,7 @@ size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
   std::ostream *stream = static_cast<std::ostream *>(userp);
   size_t realsize = size * nmemb;
   stream->write(static_cast<char *>(contents), realsize);
-  if (!stream->fail()) {
+  if (stream->fail()) {
     return 0; // Indicate failure to libcurl
   }
   return realsize;
@@ -82,7 +82,8 @@ bool write_json_to_file(const json &json) {
     return false;
   }
 
-  if (!(out << json.dump(2) << std::endl)) {
+  out << json.dump(2);
+  if (out.fail()) {
     spdlog::critical("Failed to write to '{}': {}", output_file,
                      strerror(errno));
     return false;
