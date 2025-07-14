@@ -158,9 +158,8 @@ int main() {
                   .set_title("🧩 Random LeetCode Problems")
                   .set_description(desc.str())
                   .set_footer(dpp::embed_footer().set_text(fmt::format(
-                      "Powered by 2giosangmitom Bot • Last updated: {}",
-                      data.metadata.lastUpdated)))
-                  .set_timestamp(time(nullptr));
+                      "Powered by 2giosangmitom-bot • Last updated: {}",
+                      data.metadata.lastUpdated)));
 
           event.reply(dpp::message(event.command.channel_id, embed));
 
