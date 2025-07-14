@@ -11,10 +11,13 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 // Constants
 static constexpr const char *leetcode_api_url = "https://leetcode.com/graphql";
+static constexpr const char *leetcode_url_prefix =
+    "https://leetcode.com/problems/";
 static constexpr const char *output_file = "data.json";
 const std::vector<std::string> leetcode::difficulties{"Easy", "Medium", "Hard"};
 
@@ -26,6 +29,9 @@ size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
   std::ostream *stream = static_cast<std::ostream *>(userp);
   size_t realsize = size * nmemb;
   stream->write(static_cast<char *>(contents), realsize);
+  if (!stream->fail()) {
+    return 0; // Indicate failure to libcurl
+  }
   return realsize;
 }
 
@@ -76,8 +82,7 @@ bool write_json_to_file(const json &json) {
     return false;
   }
 
-  out << json.dump(2) << std::endl;
-  if (!out) {
+  if (!(out << json.dump(2) << std::endl)) {
     spdlog::critical("Failed to write to '{}': {}", output_file,
                      strerror(errno));
     return false;
@@ -106,21 +111,14 @@ bool leetcode::validate_json(const json &json_data) {
     return false;
 
   // Check each problem has required structure
+  const std::vector<std::string> required_fields{
+      "id", "title", "difficulty", "url", "is_paid", "ac_rate", "topics"};
+
   for (const auto &problem : *problems_it) {
-    if (!problem.contains("id") || !problem["id"].is_number())
-      return false;
-    if (!problem.contains("title") || !problem["title"].is_string())
-      return false;
-    if (!problem.contains("difficulty") || !problem["difficulty"].is_string())
-      return false;
-    if (!problem.contains("url") || !problem["url"].is_string())
-      return false;
-    if (!problem.contains("is_paid") || !problem["is_paid"].is_boolean())
-      return false;
-    if (!problem.contains("ac_rate") || !problem["ac_rate"].is_number())
-      return false;
-    if (!problem.contains("topics") || !problem["topics"].is_array())
-      return false;
+    for (const auto &field : required_fields) {
+      if (!problem.contains(field))
+        return false;
+    }
   }
 
   // Check "topics" array exists and is an array
@@ -171,6 +169,15 @@ bool leetcode::download_data() {
     return false;
   }
 
+  // Validate json response
+  if (!json_response.contains("data") ||
+      !json_response["data"].contains("problemsetQuestionListV2") ||
+      !json_response["data"]["problemsetQuestionListV2"].contains(
+          "questions")) {
+    spdlog::critical("Unexpected JSON structure in API response");
+    return false;
+  }
+
   auto &questions =
       json_response["data"]["problemsetQuestionListV2"]["questions"];
   if (!questions.is_array()) {
@@ -189,8 +196,7 @@ bool leetcode::download_data() {
     problem.difficulty = q.value("difficulty", "Unknown");
     problem.is_paid = q.value("paidOnly", false);
     problem.ac_rate = q.value("acRate", 0.0);
-    problem.url =
-        "https://leetcode.com/problems/" + q.value("titleSlug", "") + "/";
+    problem.url = leetcode_url_prefix + q.value("titleSlug", "") + "/";
 
     for (const auto &tag : q["topicTags"]) {
       if (tag.contains("name")) {
@@ -204,7 +210,7 @@ bool leetcode::download_data() {
   }
 
   data.metadata.totalProblems = data.problems.size();
-  data.metadata.lastUpdated = string_utils::get_timestamp("%d %B");
+  data.metadata.lastUpdated = string_utils::get_timestamp("%Y-%m-%d %H:%M:%S");
 
   json final_json = {
       {"metadata",
@@ -253,19 +259,20 @@ std::vector<LeetCodeProblem> leetcode::filter_questions(
     std::optional<std::vector<std::string>> &topics) {
   std::vector<LeetCodeProblem> filtered;
 
-  for (auto &q : problems) {
+  for (const auto &q : problems) {
     if (difficulties.has_value() &&
         !std::any_of(difficulties->begin(), difficulties->end(),
                      [&q](std::string &a) { return a == q.difficulty; })) {
       continue;
     }
 
-    if (topics.has_value() &&
-        !std::any_of(topics->begin(), topics->end(), [&q](std::string &a) {
-          return std::any_of(
-              q.topics.begin(), q.topics.end(),
-              [&a](std::string &q_topic) { return q_topic == a; });
-        })) {
+    std::unordered_set<std::string> topic_set(q.topics.begin(), q.topics.end());
+
+    if (topics.has_value() && !std::any_of(topics->begin(), topics->end(),
+                                           [&topic_set](std::string &a) {
+                                             return topic_set.find(a) !=
+                                                    topic_set.end();
+                                           })) {
       continue;
     }
 
@@ -285,13 +292,17 @@ leetcode::get_questions(const std::vector<LeetCodeProblem> &filtered_problems,
     quantity = 10; // Limit to 10 questions
   }
 
-  std::vector<LeetCodeProblem> result;
-  int total = filtered_problems.size();
-
-  for (int i = 1; i <= quantity.value(); i++) {
-    int rand_idx = random_utils::random_int_range(0, total - 1);
-    result.push_back(filtered_problems[rand_idx]);
+  if (static_cast<int>(filtered_problems.size()) <= quantity.value()) {
+    return filtered_problems; // return all
   }
 
-  return result;
+  std::vector<LeetCodeProblem> copy = filtered_problems;
+  for (int i = 0; i < quantity.value(); ++i) {
+    int idx =
+        random_utils::random_int_range(i, static_cast<int>(copy.size()) - 1);
+    std::swap(copy[i], copy[idx]); // randomize current pick
+  }
+  copy.resize(quantity.value());
+
+  return copy;
 }
