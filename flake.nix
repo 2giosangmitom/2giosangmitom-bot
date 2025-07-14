@@ -20,13 +20,14 @@
         pkgs.spdlog
         pkgs.fmt
         pkgs.gtest
+        pkgs.boost
 
         pkgs.gnumake
         pkgs.bear
       ];
 
       CPATH = builtins.concatStringsSep ":" [
-        (lib.makeSearchPathOutput "dev" "include" [pkgs.curl pkgs.spdlog pkgs.fmt pkgs.gtest])
+        (lib.makeSearchPathOutput "dev" "include" [pkgs.curl pkgs.spdlog pkgs.fmt pkgs.gtest pkgs.boost])
         (lib.makeSearchPath "resource-root/include" [pkgs.clang])
         (lib.makeSearchPath "include" [pkgs.dpp pkgs.nlohmann_json])
       ];

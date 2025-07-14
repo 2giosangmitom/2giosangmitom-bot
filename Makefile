@@ -1,7 +1,7 @@
 # Compiler and flags
 CXX := c++
 CXXFLAGS := -std=c++17 -Wall -Wextra -I./include
-LDFLAGS := -lcurl -lfmt -lspdlog -ldpp
+LDFLAGS := -lcurl -lfmt -lspdlog -ldpp -lboost_system
 
 # Debug flags
 DEBUG_CXXFLAGS := -g -fsanitize=address

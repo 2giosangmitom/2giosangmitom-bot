@@ -1,6 +1,6 @@
-#include "dpp/colors.h"
 #include "services/leetcode.hh"
 #include "utils/string.hh"
+#include <boost/beast.hpp>
 #include <csignal>
 #include <cstdlib>
 #include <curl/curl.h>
@@ -10,9 +10,49 @@
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <variant>
 
+namespace beast = boost::beast;
+namespace http = beast::http;
+namespace net = boost::asio;
+using tcp = net::ip::tcp;
+
+void run_http_server(unsigned short port) {
+  std::thread([port]() {
+    try {
+      net::io_context ioc{1};
+
+      tcp::acceptor acceptor{ioc, {tcp::v4(), port}};
+
+      for (;;) {
+        tcp::socket socket{ioc};
+        acceptor.accept(socket);
+
+        // Handle one request per connection
+        beast::flat_buffer buffer;
+        http::request<http::string_body> req;
+        http::read(socket, buffer, req);
+
+        http::response<http::string_body> res{http::status::ok, req.version()};
+        res.set(http::field::server, "2giosangmitom-bot");
+        res.set(http::field::content_type, "text/plain");
+        res.keep_alive(req.keep_alive());
+        res.body() = "The 2giosangmitom-bot is running";
+        res.prepare_payload();
+
+        http::write(socket, res);
+      }
+    } catch (const std::exception &e) {
+      std::cerr << "[HTTP Server] Error: " << e.what() << std::endl;
+    }
+  }).detach();
+}
+
 int main() {
+  // Run http server
+  run_http_server(8080);
+
   // Set global log level for spdlog
   spdlog::set_level(spdlog::level::debug);
 

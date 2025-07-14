@@ -6,6 +6,7 @@
   curl,
   spdlog,
   fmt,
+  boost,
   gnumake,
 }:
 stdenv.mkDerivation {
@@ -18,7 +19,7 @@ stdenv.mkDerivation {
   ];
 
   nativeBuildInputs = [gnumake];
-  buildInputs = [dpp nlohmann_json curl spdlog fmt];
+  buildInputs = [dpp nlohmann_json curl spdlog fmt boost];
 
   installPhase = ''
     mkdir -p $out/bin
