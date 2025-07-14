@@ -15,7 +15,7 @@ jobs:
       - name: Set up Nix
         uses: DeterminateSystems/determinate-nix-action@v3.7.0
 
-      - name: Use Nix develop environment
+      - name: Build and test
         run: |
           nix develop --command bash -c "
             make test && ./build/run_tests
