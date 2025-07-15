@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pino from 'pino';
 import { Client, Events, GatewayIntentBits, ActivityType, Collection, MessageFlags, REST, Routes } from 'discord.js';
-import response from './services/auto-response.js';
+import { response } from './services/auto-response.js';
 
 // Globals
 const __filename = fileURLToPath(import.meta.url);

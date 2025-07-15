@@ -22,7 +22,7 @@ const triggers = [
 
 /**
  * Normalize Vietnamese: remove diacritics and convert to lowercase
- * Example: "Tại sao không vào được" -> "tai sao khong vao duoc"
+ * Example: "Đây là tiếng Việt!" -> "day la tieng viet!"
  * @param {string} str - The string that needs to be normalized
  * @returns {string}
  */
@@ -61,4 +61,4 @@ function randomFrom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export default response;
+export { randomFrom, response, normalize, triggers };
