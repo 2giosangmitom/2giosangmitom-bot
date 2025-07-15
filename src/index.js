@@ -1,6 +1,7 @@
 import fastify from 'fastify';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import * as fs from 'node:fs/promises';
+import * as process from 'node:process';
 
 // Create fake server
 const app = fastify({
@@ -29,6 +30,6 @@ client.once(Events.ClientReady, (readyClient) => {
   app.log.info(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
-const { BOT_TOKEN, CLIENT_ID } = process.env;
+const { BOT_TOKEN } = process.env;
 
 client.login(BOT_TOKEN);
