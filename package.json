@@ -4,7 +4,7 @@
   "scripts": {
     "lint": "eslint ."
   },
-  "main": "index.js",
+  "main": "src/index.js",
   "dependencies": {
     "discord.js": "^14.21.0",
     "pino": "^9.7.0",
