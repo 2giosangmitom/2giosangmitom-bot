@@ -1,4 +1,3 @@
-put index.js
 put package.json
 put package-lock.json
 put config.json
