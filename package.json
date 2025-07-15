@@ -1,0 +1,13 @@
+{
+  "name": "2giosangmitom-bot",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env ."
+  },
+  "main": "src/index.js",
+  "dependencies": {
+    "discord.js": "^14.21.0",
+    "fastify": "^5.4.0",
+    "pino-pretty": "^13.0.0"
+  }
+}
