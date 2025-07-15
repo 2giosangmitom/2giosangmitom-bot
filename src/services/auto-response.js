@@ -1,3 +1,5 @@
+import { randomFrom } from '../lib/utils.js';
+
 /**
  * @typedef Trigger
  * @property {RegExp} pattern - The regex pattern to match normalized message content
@@ -52,13 +54,4 @@ function response(rawContent) {
   return null;
 }
 
-/**
- * Pick a random element from an array
- * @param {string[]} arr
- * @returns {string}
- */
-function randomFrom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-export { randomFrom, response, normalize, triggers };
+export { response, normalize };
