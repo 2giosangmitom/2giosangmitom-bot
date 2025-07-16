@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { pino } from 'pino';
 import { Client, Events, GatewayIntentBits, ActivityType, Collection, MessageFlags, REST, Routes } from 'discord.js';
 import { response } from './services/auto-response.js';
+import { initializeData } from './services/leetcode.js';
 
 // Globals
 const __filename = fileURLToPath(import.meta.url);
@@ -30,7 +31,7 @@ function getConfig() {
     }
     return config;
   } catch (err) {
-    log.error('Failed to load config.json:', err);
+    log.error(err);
     process.exit(1);
   }
 }
@@ -52,7 +53,7 @@ async function registerSlashCommands(client, token, clientId) {
     // @ts-ignore
     log.info(`Successfully reloaded ${data.length} commands.`);
   } catch (err) {
-    log.error('Failed to register commands:', err);
+    log.error(err);
   }
 }
 
@@ -154,9 +155,18 @@ async function main() {
   try {
     await client.login(token);
   } catch (err) {
-    log.error('Login failed:', err);
+    log.error(err);
     process.exit(1);
   }
 }
+
+// Initialize LeetCode data
+initializeData(log)
+  .then(() => {
+    log.info('Initialized LeetCode data successfully');
+  })
+  .catch((err) => {
+    log.error(err);
+  });
 
 main();
