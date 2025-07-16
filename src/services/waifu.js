@@ -1,5 +1,4 @@
 import { randomFrom } from '../lib/utils.js';
-import * as https from 'node:https';
 
 const categories = ['waifu', 'hug', 'kiss', 'happy', 'handhold', 'bite'];
 const url = 'https://api.waifu.pics/sfw';
@@ -9,46 +8,23 @@ const url = 'https://api.waifu.pics/sfw';
  * @param {string} [category] - Optional category to fetch; will pick random if undefined
  * @returns {Promise<{ url: string, category: string }>}
  */
-function getImage(category) {
-  return new Promise((resolve, reject) => {
-    if (!category) {
-      category = randomFrom(categories);
-    }
-    if (!categories.includes(category)) {
-      return reject('The requested category is not available');
-    }
+async function getImage(category) {
+  if (!category) {
+    category = randomFrom(categories);
+  }
+  if (!categories.includes(category)) {
+    throw new Error('The requested category is not available');
+  }
 
-    https
-      .get(`${url}/${category}`, (res) => {
-        const { statusCode, headers } = res;
+  const response = await fetch(`${url}/${category}`);
 
-        if (statusCode !== 200) {
-          res.resume(); // Discard response to free memory
-          return reject(`Request Failed. Status Code: ${statusCode}`);
-        }
+  if (!response.ok) {
+    throw new Error(`Request Failed. Status Code: ${response.status}`);
+  }
 
-        if (!/^application\/json/.test(headers['content-type'])) {
-          res.resume();
-          return reject(`Invalid content-type. Expected application/json but received ${headers['content-type']}`);
-        }
+  const json = await response.json();
 
-        let rawData = '';
-        res.setEncoding('utf-8');
-        res.on('data', (chunk) => (rawData += chunk));
-
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(rawData);
-            resolve({ url: json?.url, category });
-          } catch (e) {
-            reject(e);
-          }
-        });
-      })
-      .on('error', (e) => {
-        reject(e);
-      });
-  });
+  return { url: json?.url, category };
 }
 
 export { getImage, categories };

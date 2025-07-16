@@ -113,18 +113,22 @@ async function main() {
 
     const command = client.commands.get(interaction.commandName);
     if (!command) {
-      log.warn(`No matching command for: ${interaction.commandName}`);
+      log.error(`No matching command for: ${interaction.commandName}`);
       return;
     }
 
     try {
+      log.info(`Executing ${command.data.name} command`);
       await command.execute(interaction);
     } catch (error) {
-      log.error('Command error:', error);
+      let errorMsg = '⚠️ There was an error while executing this command!';
+      if (error instanceof Error) {
+        errorMsg = error.message; // More user-friendly message
+      }
 
       /** @type {import('discord.js').InteractionReplyOptions} */
       const replyPayload = {
-        content: 'There was an error while executing this command!',
+        content: errorMsg,
         flags: MessageFlags.Ephemeral
       };
 
@@ -142,7 +146,7 @@ async function main() {
 
     const res = response(message.content.toLowerCase());
     if (res) {
-      message.reply(res).catch((err) => log.warn('Failed to reply:', err));
+      message.reply(res).catch((err) => log.error(err));
     }
   });
 

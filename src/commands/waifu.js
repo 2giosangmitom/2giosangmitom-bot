@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder, italic } from 'discord.js';
-import { getImage } from '../services/waifu.js';
+import { getImage, categories } from '../services/waifu.js';
 import { randomFrom } from '../lib/utils.js';
 
 const titles = [
@@ -23,28 +23,30 @@ const titles = [
 const data = new SlashCommandBuilder()
   .setName('waifu')
   .setDescription('Get a random cute anime girl image to boost your motivation 💖')
-  .addStringOption((option) => option.setName('category').setDescription('The category of image'));
+  .addStringOption((option) =>
+    option
+      .setName('category')
+      .setDescription('The category of image')
+      .addChoices(...categories.map((v) => ({ name: v, value: v })))
+  );
 
 /**
  * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 async function execute(interaction) {
-  try {
-    await interaction.deferReply();
-    const categoryParam = interaction.options.getString('category')?.toLowerCase();
-    const { url, category } = await getImage(categoryParam);
-    const embed = new EmbedBuilder()
-      .setColor('#ea76cb')
-      .setTitle(randomFrom(titles))
-      .setDescription(italic(`Category: ${category}`))
-      .setImage(url)
-      .setFooter({ text: 'Powered by waifu.pics' })
-      .setTimestamp();
+  await interaction.deferReply();
 
-    await interaction.editReply({ embeds: [embed] });
-  } catch (e) {
-    interaction.editReply(e);
-  }
+  const categoryParam = interaction.options.getString('category')?.toLowerCase();
+  const { url, category } = await getImage(categoryParam);
+  const embed = new EmbedBuilder()
+    .setColor('#ea76cb')
+    .setTitle(randomFrom(titles))
+    .setDescription(italic(`Category: ${category}`))
+    .setImage(url)
+    .setFooter({ text: 'Powered by waifu.pics' })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
 }
 
 export { data, execute };
