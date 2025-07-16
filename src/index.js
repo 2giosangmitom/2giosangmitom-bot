@@ -183,7 +183,12 @@ async function main() {
 
     const res = response(message.content.toLowerCase());
     if (res) {
-      message.reply(res).catch((err) => log.error(err));
+      message
+        .reply({
+          content: res,
+          allowedMentions: { repliedUser: false }
+        })
+        .catch((err) => log.error(err));
     }
   });
 

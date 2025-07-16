@@ -9,8 +9,8 @@ import { randomFrom } from '../lib/utils.js';
 /** @type {Trigger[]} */
 const triggers = [
   {
-    pattern: /\b(vl|vcl|dcm|dm)\b/i,
-    responses: ['Chui tuc con cark 🚫']
+    pattern: /\b(vl|vcl|dcm|dm|dit.*me)\b/i,
+    responses: ['Chui tuc con cark 🚫', 'Binh tinh di anh zai 😄', 'Giu van minh nao anh zai 👮']
   },
   {
     pattern: /\b(hello|hi|chao|yo)\b|xin chao/i,
@@ -18,7 +18,7 @@ const triggers = [
   },
   {
     pattern: /cho tao xem meme/i,
-    responses: ['Meme con cark', 'Xem meme lam j', 'Xem cuc cut']
+    responses: ['Meme con cark', 'Xem meme lam j', 'Xem cuc cut', 'Hoc bai di, meme qq']
   }
 ];
 
