@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import pino from 'pino';
+import { pino } from 'pino';
 import { Client, Events, GatewayIntentBits, ActivityType, Collection, MessageFlags, REST, Routes } from 'discord.js';
 import { response } from './services/auto-response.js';
 
@@ -49,6 +49,7 @@ async function registerSlashCommands(client, token, clientId) {
   try {
     log.info(`Refreshing ${commands.length} application (/) commands...`);
     const data = await rest.put(Routes.applicationCommands(clientId), { body: commands });
+    // @ts-ignore
     log.info(`Successfully reloaded ${data.length} commands.`);
   } catch (err) {
     log.error('Failed to register commands:', err);
@@ -70,6 +71,7 @@ async function loadCommands(commandsDir, client) {
     const command = await import(filePath);
     if (command?.data && typeof command.execute === 'function') {
       client.commands.set(command.data.name, command);
+      log.info(`Command at ${filePath} loaded successfully`);
     } else {
       log.warn(`Command at ${filePath} is missing "data" or "execute"`);
     }
@@ -119,6 +121,8 @@ async function main() {
       await command.execute(interaction);
     } catch (error) {
       log.error('Command error:', error);
+
+      /** @type {import('discord.js').InteractionReplyOptions} */
       const replyPayload = {
         content: 'There was an error while executing this command!',
         flags: MessageFlags.Ephemeral
