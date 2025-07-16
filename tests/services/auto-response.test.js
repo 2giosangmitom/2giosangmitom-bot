@@ -59,10 +59,11 @@ describe('auto-response service', () => {
 
     it('should respond to profanity triggers', () => {
       const profanityInputs = ['vl', 'VCL', 'dcm', 'DM'];
+      const expectedResponses = ['Chui tuc con cark 🚫', 'Binh tinh di anh zai 😄', 'Giu van minh nao anh zai 👮'];
 
       profanityInputs.forEach((input) => {
         const result = response(input);
-        expect(result).toBe('Chui tuc con cark 🚫');
+        expect(expectedResponses).toContain(result);
       });
     });
 
@@ -78,7 +79,7 @@ describe('auto-response service', () => {
 
     it('should respond to meme request triggers', () => {
       const memeInputs = ['cho tao xem meme', 'CHO TAO XEM MEME'];
-      const expectedResponses = ['Meme con cark', 'Xem meme lam j', 'Xem cuc cut'];
+      const expectedResponses = ['Meme con cark', 'Xem meme lam j', 'Xem cuc cut', 'Hoc bai di, meme qq'];
 
       memeInputs.forEach((input) => {
         const result = response(input);
