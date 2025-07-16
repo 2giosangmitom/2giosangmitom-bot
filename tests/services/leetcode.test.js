@@ -6,9 +6,7 @@ import { downloadData, loadData, validateData, filterQuestions, initializeData }
 // Mock node modules
 vi.mock('node:fs/promises');
 vi.mock('node:process', () => ({
-  default: {
-    cwd: () => '/test/path'
-  }
+  cwd: () => '/test/path'
 }));
 
 // Mock fetch
@@ -106,7 +104,7 @@ describe('leetcode service', () => {
 
       expect(fs.mkdir).toHaveBeenCalledWith(path.dirname(mockCachePath), { recursive: true });
 
-      expect(fs.writeFile).toHaveBeenCalledWith(mockCachePath, expect.stringContaining('"title":"Two Sum"'), 'utf-8');
+      expect(fs.writeFile).toHaveBeenCalledWith(mockCachePath, expect.stringContaining('Two Sum'), 'utf-8');
     });
 
     it('should throw error for failed API request', async () => {

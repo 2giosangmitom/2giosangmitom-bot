@@ -133,15 +133,15 @@ async function validateData() {
 
   return (
     meta &&
-      typeof meta.totalProblems === 'number' &&
-      typeof meta.lastUpdate === 'string' &&
-      Array.isArray(problems) &&
-      problems.every((v) => {
-        for (const key of ['id', 'title', 'difficulty', 'isPaid', 'acRate', 'url', 'topics']) {
-          if (!(key in v)) return false;
-        }
-        return true;
-      }),
+    typeof meta.totalProblems === 'number' &&
+    typeof meta.lastUpdate === 'string' &&
+    Array.isArray(problems) &&
+    problems.every((v) => {
+      for (const key of ['id', 'title', 'difficulty', 'isPaid', 'acRate', 'url', 'topics']) {
+        if (!(key in v)) return false;
+      }
+      return true;
+    }) &&
     Array.isArray(topics)
   );
 }
