@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, EmbedBuilder, italic } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { getImage, categories } from '../services/waifu.js';
 import { randomFrom } from '../lib/utils.js';
 
+/** @type {string[]} */
 const titles = [
   "Here's Your Daily Dose of Motivation ✨",
   'A Waifu Appears! 💖',
@@ -31,22 +32,29 @@ const data = new SlashCommandBuilder()
   );
 
 /**
- * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ * Executes the waifu command and returns a motivational anime image
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction - The command interaction
+ * @returns {Promise<void>}
  */
 async function execute(interaction) {
   await interaction.deferReply();
 
-  const categoryParam = interaction.options.getString('category')?.toLowerCase();
-  const { url, category } = await getImage(categoryParam);
-  const embed = new EmbedBuilder()
-    .setColor('#ea76cb')
-    .setTitle(randomFrom(titles))
-    .setDescription(italic(`Category: ${category}`))
-    .setImage(url)
-    .setFooter({ text: 'Powered by waifu.pics' })
-    .setTimestamp();
+  try {
+    const categoryParam = interaction.options.getString('category')?.toLowerCase() || undefined;
+    const { url, category } = await getImage(categoryParam);
 
-  await interaction.editReply({ embeds: [embed] });
+    const embed = new EmbedBuilder()
+      .setColor(15431372)
+      .setTitle(randomFrom(titles) || 'Your Waifu is Here! 💖')
+      .setDescription(`*Category: ${category}*`)
+      .setImage(url)
+      .setFooter({ text: 'Powered by waifu.pics' })
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+  } catch (error) {
+    throw new Error(`Failed to fetch waifu image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 export { data, execute };

@@ -6,6 +6,10 @@ import { Client, Events, GatewayIntentBits, ActivityType, Collection, MessageFla
 import { response } from './services/auto-response.js';
 import { initializeData } from './services/leetcode.js';
 
+// Cache for command modules to avoid repeated file reads
+/** @type {Map<string, any>} */
+const commandCache = new Map();
+
 // Globals
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,6 +64,7 @@ async function registerSlashCommands(client, token, clientId) {
 /**
  * Loads command modules from the given directory into the client's command collection.
  * Skips invalid modules that don't export both `data` and `execute`.
+ * Uses caching to avoid repeated file reads during development.
  * @param {string} commandsDir - Path to the commands directory
  * @param {Client} client - The Discord client
  * @returns {Promise<void>}
@@ -67,16 +72,33 @@ async function registerSlashCommands(client, token, clientId) {
 async function loadCommands(commandsDir, client) {
   const commandFiles = fs.readdirSync(commandsDir).filter((f) => f.endsWith('.js'));
 
-  for (const file of commandFiles) {
+  // Use Promise.all for parallel loading
+  const loadPromises = commandFiles.map(async (file) => {
     const filePath = path.join(commandsDir, file);
-    const command = await import(filePath);
-    if (command?.data && typeof command.execute === 'function') {
+
+    // Check cache first
+    if (commandCache.has(filePath)) {
+      const command = commandCache.get(filePath);
       client.commands.set(command.data.name, command);
-      log.info(`Command at ${filePath} loaded successfully`);
-    } else {
-      log.warn(`Command at ${filePath} is missing "data" or "execute"`);
+      log.info(`Command at ${filePath} loaded from cache`);
+      return;
     }
-  }
+
+    try {
+      const command = await import(filePath);
+      if (command?.data && typeof command.execute === 'function') {
+        commandCache.set(filePath, command);
+        client.commands.set(command.data.name, command);
+        log.info(`Command at ${filePath} loaded successfully`);
+      } else {
+        log.warn(`Command at ${filePath} is missing "data" or "execute"`);
+      }
+    } catch (error) {
+      log.error(`Failed to load command at ${filePath}:`, error);
+    }
+  });
+
+  await Promise.all(loadPromises);
 }
 
 /**

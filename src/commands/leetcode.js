@@ -4,8 +4,35 @@ import { filterQuestions, loadData } from '../services/leetcode.js';
 import Fuse from 'fuse.js';
 
 const difficulties = ['Easy', 'Medium', 'Hard'];
-let leetCodeDataPromise = loadData();
 
+// Cache the LeetCode data promise to avoid multiple API calls
+/** @type {Promise<import('../services/leetcode.js').LeetCodeData | null> | null} */
+let leetCodeDataPromise = null;
+/** @type {Fuse<string> | null} */
+let fuseInstance = null;
+
+/**
+ * Gets or initializes the LeetCode data with caching
+ * @returns {Promise<import('../services/leetcode.js').LeetCodeData | null>}
+ */
+async function getLeetCodeData() {
+  // Reset cache in test environment or if promise is stale
+  if (!leetCodeDataPromise || process.env.NODE_ENV === 'test' || process.env.VITEST) {
+    leetCodeDataPromise = loadData();
+  }
+  const result = await leetCodeDataPromise;
+  // If data is null, reset cache for next call
+  if (!result) {
+    leetCodeDataPromise = null;
+    fuseInstance = null; // Also reset Fuse instance
+  }
+  return result;
+}
+
+/**
+ * Gets or initializes the Fuse.js instance for topic search
+ * @returns {Promise<Fuse<string> | null>}
+ */
 const data = new SlashCommandBuilder()
   .setName('leetcode')
   .setDescription('Get random questions from LeetCode')
@@ -19,23 +46,42 @@ const data = new SlashCommandBuilder()
   .addBooleanOption((option) => option.setName('include-paid').setDescription('Include paid problems'));
 
 /**
+ * Executes the leetcode command
  * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 async function execute(interaction) {
-  const leetcodeData = await leetCodeDataPromise;
+  const leetcodeData = await getLeetCodeData();
   if (!leetcodeData) {
     throw new Error('No problems found at the moment');
   }
 
-  const difficultyParam = interaction.options.getString('difficulty')?.toLowerCase() ?? randomFrom(difficulties);
-  const topicParam = interaction.options.getString('topic')?.toLowerCase() ?? randomFrom(leetcodeData.topics);
+  let difficultyParam = interaction.options.getString('difficulty');
+  let topicParam = interaction.options.getString('topic');
   const includePaidParam = interaction.options.getBoolean('include-paid') ?? false;
 
-  if (difficultyParam === null || topicParam === null || includePaidParam === null) {
-    throw new Error('An error occurred while reading parameters');
+  // Set defaults if not provided
+  if (!difficultyParam) {
+    const randomDifficulty = randomFrom(difficulties);
+    if (!randomDifficulty) {
+      throw new Error('An error occurred while reading parameters');
+    }
+    difficultyParam = randomDifficulty;
   }
 
-  const filterdProblems = filterQuestions(leetcodeData.problems, difficultyParam, topicParam, includePaidParam);
+  if (!topicParam) {
+    const randomTopic = randomFrom(leetcodeData.topics);
+    if (!randomTopic) {
+      throw new Error('An error occurred while reading parameters');
+    }
+    topicParam = randomTopic;
+  }
+
+  const filterdProblems = filterQuestions(
+    leetcodeData.problems,
+    difficultyParam.toLowerCase(),
+    topicParam.toLowerCase(),
+    includePaidParam
+  );
 
   // Check if filtered problems array is empty
   if (filterdProblems.length === 0) {
@@ -54,7 +100,7 @@ async function execute(interaction) {
   const embed = new EmbedBuilder()
     .setTitle(`${problem.title}`)
     .setURL(problem.url)
-    .setColor(problem.difficulty === 'easy' ? 'Green' : problem.difficulty === 'medium' ? 'Yellow' : 'Red')
+    .setColor(problem.difficulty === 'easy' ? 5763719 : problem.difficulty === 'medium' ? 16776960 : 15548997)
     .setFooter({ text: `Powered by LeetCode` })
     .setTimestamp()
     .addFields(
@@ -78,18 +124,42 @@ async function execute(interaction) {
 }
 
 /**
+ * Handles autocomplete for the topic parameter
  * @param {import('discord.js').AutocompleteInteraction} interaction
  */
 async function autocomplete(interaction) {
-  const leetcodeData = await leetCodeDataPromise;
+  const leetcodeData = await getLeetCodeData();
   if (!leetcodeData) {
     throw new Error('No problems found at the moment');
   }
 
   const focusedValue = interaction.options.getFocused();
-  const fuse = new Fuse(leetcodeData.topics, { includeScore: true });
-  const result = fuse.search(focusedValue);
-  await interaction.respond(result.map((res) => ({ name: res.item, value: res.item })));
+
+  // If no search term, return first 25 topics
+  if (!focusedValue || !focusedValue.trim()) {
+    const topicsToShow = leetcodeData.topics.slice(0, 25);
+    await interaction.respond(topicsToShow.map((topic) => ({ name: topic, value: topic })));
+    return;
+  }
+
+  // Create Fuse instance for search if we have a search term
+  if (!fuseInstance && leetcodeData.topics && leetcodeData.topics.length > 0) {
+    fuseInstance = new Fuse(leetcodeData.topics, {
+      includeScore: true,
+      threshold: 0.3
+    });
+  }
+
+  if (fuseInstance) {
+    const result = fuseInstance.search(focusedValue, { limit: 25 });
+    if (result && Array.isArray(result)) {
+      await interaction.respond(result.map((res) => ({ name: res.item, value: res.item })));
+    } else {
+      await interaction.respond([]);
+    }
+  } else {
+    await interaction.respond([]);
+  }
 }
 
 export { data, execute, autocomplete };
