@@ -110,33 +110,47 @@ async function main() {
 
   // Handle slash command interactions
   client.on(Events.InteractionCreate, async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
-
-    const command = client.commands.get(interaction.commandName);
-    if (!command) {
-      log.error(`No matching command for: ${interaction.commandName}`);
-      return;
-    }
-
-    try {
-      log.info(`Executing ${command.data.name} command`);
-      await command.execute(interaction);
-    } catch (error) {
-      let errorMsg = '⚠️ There was an error while executing this command!';
-      if (error instanceof Error) {
-        errorMsg = error.message; // More user-friendly message
+    if (interaction.isChatInputCommand()) {
+      const command = client.commands.get(interaction.commandName);
+      if (!command) {
+        log.error(`No matching command for: ${interaction.commandName}`);
+        return;
       }
 
-      /** @type {import('discord.js').InteractionReplyOptions} */
-      const replyPayload = {
-        content: errorMsg,
-        flags: MessageFlags.Ephemeral
-      };
+      try {
+        log.info(`Executing ${command.data.name} command`);
+        await command.execute(interaction);
+      } catch (error) {
+        let errorMsg = '⚠️ There was an error while executing this command!';
+        if (error instanceof Error) {
+          errorMsg = error.message; // More user-friendly message
+        }
 
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(replyPayload);
-      } else {
-        await interaction.reply(replyPayload);
+        /** @type {import('discord.js').InteractionReplyOptions} */
+        const replyPayload = {
+          content: errorMsg,
+          flags: MessageFlags.Ephemeral
+        };
+
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(replyPayload);
+        } else {
+          await interaction.reply(replyPayload);
+        }
+      }
+    } else if (interaction.isAutocomplete()) {
+      const command = client.commands.get(interaction.commandName);
+      if (!command) {
+        log.error(`No matching command for: ${interaction.commandName}`);
+        return;
+      }
+
+      try {
+        if (command.autocomplete) {
+          await command.autocomplete(interaction);
+        }
+      } catch (error) {
+        log.error(error);
       }
     }
   });

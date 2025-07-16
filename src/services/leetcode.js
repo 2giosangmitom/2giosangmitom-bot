@@ -6,7 +6,7 @@ import * as fs from 'node:fs/promises';
  * @typedef {Object} Problem
  * @property {number} id
  * @property {string} title
- * @property {string} difficulty
+ * @property {'easy' | 'medium' | 'hard'} difficulty
  * @property {boolean} isPaid
  * @property {number} acRate
  * @property {string} url
@@ -17,6 +17,7 @@ import * as fs from 'node:fs/promises';
  * @typedef {Object} LeetCodeData
  * @property {{ totalProblems: number, lastUpdate: string }} metadata
  * @property {Problem[]} problems
+ * @property {string[]} topics
  */
 
 const leetcodeUrl = 'https://leetcode.com';
@@ -80,6 +81,7 @@ async function downloadData() {
     throw new Error('Invalid response structure from LeetCode API');
   }
 
+  /** @type {Problem[]} */
   const problems = questions.map((q) => ({
     id: q.id,
     title: q.title,
@@ -96,7 +98,8 @@ async function downloadData() {
       totalProblems: problems.length,
       lastUpdate: new Date().toISOString()
     },
-    problems
+    problems,
+    topics: [...new Set(problems.map((problem) => problem.topics).flat()).values()]
   };
 
   await fs.mkdir(path.dirname(cachePath), { recursive: true });
@@ -126,24 +129,40 @@ async function validateData() {
 
   const meta = raw.metadata;
   const problems = raw.problems;
+  const topics = raw.topics;
 
   return (
-    meta && typeof meta.totalProblems === 'number' && typeof meta.lastUpdate === 'string' && Array.isArray(problems)
+    meta &&
+      typeof meta.totalProblems === 'number' &&
+      typeof meta.lastUpdate === 'string' &&
+      Array.isArray(problems) &&
+      problems.every((v) => {
+        for (const key of ['id', 'title', 'difficulty', 'isPaid', 'acRate', 'url', 'topics']) {
+          if (!(key in v)) return false;
+        }
+        return true;
+      }),
+    Array.isArray(topics)
   );
 }
 
 /**
- * Placeholder: filters problems by criteria.
+ * Filters problems by criteria.
+ * @param {Problem[]} problems
+ * @param {string} difficulty
+ * @param {string} topic
+ * @param {boolean} includePaid
  */
-function filterQuestions(/* criteria */) {
-  // To be implemented
-}
+function filterQuestions(problems, difficulty, topic, includePaid) {
+  difficulty = difficulty.toLowerCase();
+  topic = topic.toLowerCase();
 
-/**
- * Placeholder: picks random problems.
- */
-function pickRandomQuestions(/* count */) {
-  // To be implemented
+  return problems.filter(
+    (problem) =>
+      problem.difficulty.toLowerCase() === difficulty &&
+      problem.topics.map((t) => t.toLowerCase()).includes(topic) &&
+      (includePaid || !problem.isPaid)
+  );
 }
 
 /**
@@ -176,4 +195,4 @@ async function initializeData(log) {
   }
 }
 
-export { downloadData, loadData, validateData, filterQuestions, pickRandomQuestions, initializeData };
+export { downloadData, loadData, validateData, filterQuestions, initializeData };

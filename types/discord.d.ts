@@ -6,6 +6,7 @@ declare module 'discord.js' {
   interface Command {
     data: SlashCommandBuilder;
     execute(interaction: Interaction<CacheType>): Promise<void>;
+    autocomplete?(interaction: Interaction<CacheType>): Promise<void>;
   }
 
   interface Client {

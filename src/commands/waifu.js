@@ -27,7 +27,7 @@ const data = new SlashCommandBuilder()
     option
       .setName('category')
       .setDescription('The category of image')
-      .addChoices(...categories.map((v) => ({ name: v, value: v })))
+      .addChoices(categories.map((v) => ({ name: v, value: v })))
   );
 
 /**
