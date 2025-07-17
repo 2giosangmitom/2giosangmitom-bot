@@ -4,7 +4,7 @@
  * @license MIT
  */
 
-import { log } from './constants';
+import { pino } from 'pino';
 import config from '../config.json';
 import {
   Client,
@@ -18,6 +18,9 @@ import {
 } from 'discord.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
+/** @description Pino object for logging */
+const log = pino();
 
 /**
  * @description Setup client, commands, and event handlers for the bot
