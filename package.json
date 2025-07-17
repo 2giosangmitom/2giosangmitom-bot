@@ -1,25 +1,26 @@
 {
   "name": "2giosangmitom-bot",
-  "type": "module",
   "scripts": {
+    "build": "node build.mjs",
     "lint": "eslint .",
     "test": "vitest run",
-    "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "format": "prettier --write ."
   },
-  "main": "src/index.js",
   "dependencies": {
     "discord.js": "^14.21.0",
+    "esbuild": "^0.25.6",
     "fuse.js": "^7.1.0",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
+    "@types/node": "^24.0.14",
     "eslint": "^9.31.0",
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
     "typescript": "^5.8.3",
+    "typescript-eslint": "^8.37.0",
     "vitest": "^3.2.4"
   }
 }

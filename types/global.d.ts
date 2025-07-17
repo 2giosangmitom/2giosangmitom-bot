@@ -1,15 +1,11 @@
-import { Collection, SlashCommandBuilder } from 'discord.js';
+import type { Interaction, CacheType, SlashCommandBuilder } from 'discord.js';
 
 export {};
 
-declare module 'discord.js' {
+declare global {
   interface Command {
     data: SlashCommandBuilder;
     execute(interaction: Interaction<CacheType>): Promise<void>;
     autocomplete?(interaction: Interaction<CacheType>): Promise<void>;
-  }
-
-  interface Client {
-    commands: Collection<string, Command>;
   }
 }

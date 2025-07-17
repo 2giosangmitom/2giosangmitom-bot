@@ -1,5 +1,2 @@
-put package.json
-put package-lock.json
-put config.json
-put -r src/
+put dist/index.js
 bye

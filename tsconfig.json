@@ -1,17 +1,23 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "allowJs": true,
-    "checkJs": true,
-    "noEmit": true,
-    "strict": true,
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "outDir": "dist",
+    "rootDir": ".",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "types": ["node"],
-    "baseUrl": "."
+    "strict": true,
+    "declaration": false,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "~/services/*": ["./src/services/*"],
+      "~/lib/*": ["./src/lib/*"],
+      "~/commands/*": ["./src/commands/*"]
+    }
   },
-  "include": ["src", "types"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "types"],
+  "exclude": ["dist", "node_modules"]
 }
