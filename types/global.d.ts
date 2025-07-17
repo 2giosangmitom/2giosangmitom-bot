@@ -8,4 +8,8 @@ declare global {
     execute(interaction: Interaction<CacheType>): Promise<void>;
     autocomplete?(interaction: Interaction<CacheType>): Promise<void>;
   }
+
+  interface WaifuPicsResponse {
+    url: string;
+  }
 }

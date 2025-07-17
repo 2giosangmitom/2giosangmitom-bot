@@ -5,8 +5,8 @@ const data = new SlashCommandBuilder()
   .setDescription('Get latency-related infomation');
 
 /**
- * @description Get latency information and reply to user
- * @param interaction The slash command interaction object
+ * @description Get latency information and reply to user.
+ * @param interaction The slash command interaction object.
  */
 async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.reply('Pinging...');

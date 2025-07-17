@@ -1,7 +1,7 @@
 /**
  * @file Entry point for the application.
  * @author Vo Quang Chien <voquangchien.dev@proton.me>
- * @version 1.0.0
+ * @license MIT
  */
 
 import { log } from './constants';

@@ -20,7 +20,7 @@ describe('ping', () => {
   beforeEach(() => {
     mockInteraction = {
       reply: vi.fn(),
-      fetchReply: vi.fn().mockReturnValue({ createdTimestamp: 1000 }),
+      fetchReply: vi.fn().mockResolvedValue({ createdTimestamp: 1000 }),
       client: {
         ws: {
           ping: 100
@@ -32,7 +32,7 @@ describe('ping', () => {
   });
 
   it('should reply with correct ping information', async () => {
-    mockInteraction.fetchReply.mockReturnValueOnce({
+    mockInteraction.fetchReply.mockResolvedValueOnce({
       createdTimestamp: 1100 // 100ms later
     });
 
@@ -54,7 +54,7 @@ describe('ping', () => {
     'should reply $expected when created = $created and replied = $replied',
     async ({ created, replied, expected }) => {
       mockInteraction.createdTimestamp = created;
-      mockInteraction.fetchReply.mockReturnValueOnce({ createdTimestamp: replied });
+      mockInteraction.fetchReply.mockResolvedValueOnce({ createdTimestamp: replied });
 
       await execute(mockInteraction as unknown as ChatInputCommandInteraction);
 
