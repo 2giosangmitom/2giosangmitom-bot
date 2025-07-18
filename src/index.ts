@@ -21,6 +21,7 @@ import {
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { replyMessage } from './services/auto-response';
+import { validateData, downloadData } from '~/services/leetcode';
 
 /** @description Pino logger instance */
 const log = pino({
@@ -171,10 +172,38 @@ async function registerSlashCommands(
   }
 }
 
+/**
+ * @description Ensures LeetCode data is cached and valid, or fetches it.
+ */
+async function initializeData() {
+  try {
+    log.info('[Cache] Validating cached data...');
+    const valid = await validateData();
+
+    if (valid) {
+      log.info('[Cache] Cache is valid. No need to re-fetch.');
+      return;
+    }
+
+    log.warn('[Cache] Cache is invalid. Re-downloading data...');
+  } catch {
+    log.warn('[Cache] Cache file not found. Fetching data from LeetCode...');
+  }
+
+  await downloadData();
+  log.info('[Cache] LeetCode data downloaded and cached.');
+}
+
+// Exit if don't have cache data.
+initializeData().catch((error) => {
+  log.fatal({ error }, '[Fatal] Failed to initialize data. Exiting.');
+  process.exit(1);
+});
+
 // Start the bot
 log.info('Starting 2giosangmitom-bot...');
-main().catch((err) => {
-  log.fatal({ err }, '[Fatal] Uncaught exception in main(). Exiting.');
+main().catch((error) => {
+  log.fatal({ error }, '[Fatal] Uncaught exception in main(). Exiting.');
   process.exit(1);
 });
 

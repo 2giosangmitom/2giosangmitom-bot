@@ -6,12 +6,6 @@
 
 import { randomFrom } from '~/lib/utils';
 
-interface Trigger {
-  description: string; // Description for the trigger
-  pattern: RegExp; // RegExp to check the message content
-  responses: string[]; // Response messages
-}
-
 /** @description Regexes for checking whether the bot should reply to the user */
 const triggers: Trigger[] = [
   {
