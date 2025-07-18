@@ -33,8 +33,7 @@ describe('waifu', () => {
         title
       });
 
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date(2025, 7, 18));
+      vi.setSystemTime(new Date(2022, 0, 15));
 
       await execute(mockInteraction as unknown as ChatInputCommandInteraction);
 
@@ -42,8 +41,6 @@ describe('waifu', () => {
       expect(mockInteraction.options.getString).toHaveBeenCalledOnce();
       expect(spyGetImage).toHaveBeenCalledOnce();
       expect(mockInteraction.editReply.mock.calls).toMatchSnapshot();
-
-      vi.useRealTimers();
     }
   );
 
