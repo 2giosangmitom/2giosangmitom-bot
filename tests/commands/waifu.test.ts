@@ -33,7 +33,7 @@ describe('waifu', () => {
         title
       });
 
-      vi.setSystemTime(new Date(2022, 0, 15));
+      vi.setSystemTime(Date.UTC(2022, 0, 15, 17, 15, 20, 66));
 
       await execute(mockInteraction as unknown as ChatInputCommandInteraction);
 
