@@ -1,5 +1,4 @@
-import { afterEach } from 'node:test';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getImage, titles, categories } from '~/services/waifu';
 
 describe('getImage', () => {

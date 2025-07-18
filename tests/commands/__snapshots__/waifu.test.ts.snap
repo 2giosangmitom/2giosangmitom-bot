@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`waifu > should reply to user correctly with url = 'https://mock.waifu', category = 'waifu', title = 'i love you, Truyen' 1`] = `
+[
+  [
+    {
+      "embeds": [
+        {
+          "color": 15277667,
+          "description": "_Category: waifu_",
+          "footer": {
+            "icon_url": undefined,
+            "text": "Powered by waifu.pics",
+          },
+          "image": {
+            "url": "https://mock.waifu",
+          },
+          "timestamp": "2025-08-17T17:00:00.000Z",
+          "title": "i love you, Truyen",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`waifu > should reply to user correctly with url = 'https://waifu.mock', category = 'hehe', title = 'oidoioi' 1`] = `
+[
+  [
+    {
+      "embeds": [
+        {
+          "color": 15277667,
+          "description": "_Category: hehe_",
+          "footer": {
+            "icon_url": undefined,
+            "text": "Powered by waifu.pics",
+          },
+          "image": {
+            "url": "https://waifu.mock",
+          },
+          "timestamp": "2025-08-17T17:00:00.000Z",
+          "title": "oidoioi",
+        },
+      ],
+    },
+  ],
+]
+`;

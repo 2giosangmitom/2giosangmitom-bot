@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ping > should reply with correct ping information 1`] = `
+[
+  [
+    "🏓 Pong!
+🏃 Round-trip latency: \`100ms\`
+🏃 WebSocket ping: \`100ms\`",
+  ],
+]
+`;

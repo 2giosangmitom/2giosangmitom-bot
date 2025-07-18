@@ -4,7 +4,8 @@ import path from 'node:path';
 
 export default defineConfig({
   test: {
-    include: ['tests/**/*.test.ts']
+    include: ['tests/**/*.test.ts'],
+    reporters: ['verbose']
   },
   resolve: {
     // Create alias from tsconfig.json
