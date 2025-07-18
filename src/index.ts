@@ -68,32 +68,46 @@ async function main() {
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
+    if (interaction.isChatInputCommand()) {
+      const command = client.commands.get(interaction.commandName);
+      if (!command) {
+        const warnMsg = `[Interaction] No matching command for "${interaction.commandName}"`;
+        log.warn(warnMsg);
+        await interaction.reply({ content: warnMsg, flags: MessageFlags.Ephemeral });
+        return;
+      }
 
-    const command = client.commands.get(interaction.commandName);
-    if (!command) {
-      const warnMsg = `[Interaction] No matching command for "${interaction.commandName}"`;
-      log.warn(warnMsg);
-      await interaction.reply({ content: warnMsg, flags: MessageFlags.Ephemeral });
-      return;
-    }
+      try {
+        log.info(`[Interaction] Executing command: ${interaction.commandName}`);
+        await command.execute(interaction);
+      } catch (error) {
+        const userMessage = '⚠️ There was an error while executing this command!';
+        log.error({ err: error }, `[Interaction] Error in command "${interaction.commandName}"`);
 
-    try {
-      log.info(`[Interaction] Executing command: ${interaction.commandName}`);
-      await command.execute(interaction);
-    } catch (error) {
-      const userMessage = '⚠️ There was an error while executing this command!';
-      log.error({ err: error }, `[Interaction] Error in command "${interaction.commandName}"`);
+        const replyPayload: InteractionReplyOptions = {
+          content: error instanceof Error ? `😭 ${error.message}` : userMessage,
+          flags: MessageFlags.Ephemeral
+        };
 
-      const replyPayload: InteractionReplyOptions = {
-        content: error instanceof Error ? `😭 ${error.message}` : userMessage,
-        flags: MessageFlags.Ephemeral
-      };
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(replyPayload);
+        } else {
+          await interaction.reply(replyPayload);
+        }
+      }
+    } else if (interaction.isAutocomplete()) {
+      const command = client.commands.get(interaction.commandName);
+      if (!command) {
+        log.error(`No matching command for: ${interaction.commandName}`);
+        return;
+      }
 
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(replyPayload);
-      } else {
-        await interaction.reply(replyPayload);
+      try {
+        if (command.autocomplete) {
+          await command.autocomplete(interaction);
+        }
+      } catch (error) {
+        log.error({ error }, `[Interaction] Error in command "${interaction.commandName}"`);
       }
     }
   });

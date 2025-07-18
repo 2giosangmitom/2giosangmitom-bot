@@ -4,12 +4,22 @@
  * @copyright © 2025 Vo Quang Chien
  */
 
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import {
+  AutocompleteInteraction,
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  SlashCommandBuilder
+} from 'discord.js';
+import Fuse from 'fuse.js';
 import { randomFrom } from '~/lib/utils';
 import { difficulties, loadData, filterQuestions } from '~/services/leetcode';
 
-// Load LeetCode cache.
+// LeetCode data cache
 let leetcodeData: LeetCodeData | null = null;
+
+// Fuse instance
+let fuseInstance: Fuse<string> | null = null;
+
 loadData().then((v) => {
   leetcodeData = v;
 });
@@ -36,7 +46,7 @@ const data = new SlashCommandBuilder()
  */
 async function execute(interaction: ChatInputCommandInteraction) {
   if (!leetcodeData) {
-    throw new Error('No data available at the moment.');
+    throw new Error('No problems found at the moment');
   }
 
   const difficultyParam = interaction.options.getString('difficulty') ?? undefined;
@@ -77,4 +87,41 @@ async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.reply({ embeds: [embed] });
 }
 
-export { data, execute };
+/**
+ * @description Handles autocomplete for the topic parameter
+ */
+async function autocomplete(interaction: AutocompleteInteraction) {
+  if (!leetcodeData) {
+    throw new Error('No problems found at the moment');
+  }
+
+  const focusedValue = interaction.options.getFocused();
+
+  // If no search term, return first 25 topics
+  if (!focusedValue || !focusedValue.trim()) {
+    const topicsToShow = leetcodeData.topics.slice(0, 25);
+    await interaction.respond(topicsToShow.map((topic) => ({ name: topic, value: topic })));
+    return;
+  }
+
+  // Create Fuse instance for search if we have a search term
+  if (!fuseInstance && leetcodeData.topics && leetcodeData.topics.length > 0) {
+    fuseInstance = new Fuse(leetcodeData.topics, {
+      includeScore: true,
+      threshold: 0.3
+    });
+  }
+
+  if (fuseInstance) {
+    const result = fuseInstance.search(focusedValue, { limit: 25 });
+    if (result && Array.isArray(result)) {
+      await interaction.respond(result.map((res) => ({ name: res.item, value: res.item })));
+    } else {
+      await interaction.respond([]);
+    }
+  } else {
+    await interaction.respond([]);
+  }
+}
+
+export { data, execute, autocomplete };
