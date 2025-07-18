@@ -98,7 +98,7 @@ async function main() {
     } else if (interaction.isAutocomplete()) {
       const command = client.commands.get(interaction.commandName);
       if (!command) {
-        log.error(`No matching command for: ${interaction.commandName}`);
+        log.warn(`[Interaction] No matching command for "${interaction.commandName}"`);
         return;
       }
 
