@@ -240,13 +240,40 @@ describe('leetcode', () => {
           acRate: 0.6,
           url: '',
           topics: ['Stack']
+        },
+        {
+          id: 1554,
+          title: 'Minimum Time to Collect All Apples in a Tree',
+          difficulty: 'medium',
+          isPaid: false,
+          acRate: 0.6306896159864332,
+          url: '',
+          topics: ['Hash Table', 'Tree', 'Depth-First Search', 'Breadth-First Search']
+        },
+        {
+          id: 1555,
+          title: 'Number of Ways of Cutting a Pizza',
+          difficulty: 'hard',
+          isPaid: false,
+          acRate: 0.6161416824794433,
+          url: '',
+          topics: ['Array', 'Dynamic Programming', 'Memoization', 'Matrix', 'Prefix Sum']
+        },
+        {
+          id: 1578,
+          title: 'Apples & Oranges',
+          difficulty: 'medium',
+          isPaid: true,
+          acRate: 0.8606540419017145,
+          url: '',
+          topics: ['Database']
         }
       ],
       topics: ['Array', 'Math', 'Stack']
     };
 
     it('filters by difficulty and topic', () => {
-      const result = filterQuestions(mockData, 'easy', 'array');
+      const result = filterQuestions(mockData, 'easy', 'Array');
       expect(result).toMatchSnapshot();
     });
 
@@ -258,6 +285,16 @@ describe('leetcode', () => {
     it('includes paid problems when includePaid is true', () => {
       const result = filterQuestions(mockData, 'medium', 'math', true);
       expect(result).toMatchSnapshot();
+    });
+
+    it('returns empty array when no problems match the topic', () => {
+      const result = filterQuestions(mockData, 'easy', 'graph');
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array when no problems match the difficulty', () => {
+      const result = filterQuestions(mockData, 'hard', 'Database');
+      expect(result).toEqual([]);
     });
   });
 });

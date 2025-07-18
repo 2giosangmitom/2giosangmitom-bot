@@ -86,7 +86,7 @@ async function main() {
       log.error({ err: error }, `[Interaction] Error in command "${interaction.commandName}"`);
 
       const replyPayload: InteractionReplyOptions = {
-        content: error instanceof Error ? `⚠️ ${error.message}` : userMessage,
+        content: error instanceof Error ? `😭 ${error.message}` : userMessage,
         flags: MessageFlags.Ephemeral
       };
 
@@ -176,34 +176,29 @@ async function registerSlashCommands(
  * @description Ensures LeetCode data is cached and valid, or fetches it.
  */
 async function initializeData() {
-  try {
-    log.info('[Cache] Validating cached data...');
-    const valid = await validateData();
+  log.info('[Cache] Validating cached data...');
+  const valid = await validateData();
 
-    if (valid) {
-      log.info('[Cache] Cache is valid. No need to re-fetch.');
-      return;
-    }
-
-    log.warn('[Cache] Cache is invalid. Re-downloading data...');
-  } catch {
-    log.warn('[Cache] Cache file not found. Fetching data from LeetCode...');
+  if (valid) {
+    log.info('[Cache] Cache is valid. No need to re-fetch.');
+    return;
+  } else {
+    log.warn('[Cache] Cache is not found or is invalid. Re-downloading data...');
   }
-
   await downloadData();
   log.info('[Cache] LeetCode data downloaded and cached.');
 }
 
 // Exit if don't have cache data.
 initializeData().catch((error) => {
-  log.fatal({ error }, '[Fatal] Failed to initialize data. Exiting.');
+  log.fatal({ error }, '[Fatal] Failed to initialize data. Exitting.');
   process.exit(1);
 });
 
 // Start the bot
 log.info('Starting 2giosangmitom-bot...');
 main().catch((error) => {
-  log.fatal({ error }, '[Fatal] Uncaught exception in main(). Exiting.');
+  log.fatal({ error }, '[Fatal] Uncaught exception in main(). Exitting.');
   process.exit(1);
 });
 

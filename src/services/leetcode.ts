@@ -139,16 +139,19 @@ function filterQuestions(
   data: LeetCodeData,
   difficulty?: string,
   topic?: string,
-  includePaid?: boolean
+  includePaid = false
 ) {
-  difficulty = difficulty?.toLowerCase() || randomFrom(difficulties)!.toLowerCase();
-  topic = topic?.toLowerCase() || randomFrom(data.topics)!;
-  includePaid = includePaid || false;
+  const chosenDifficulty = difficulty?.toLowerCase() || randomFrom(difficulties)?.toLowerCase();
+  const chosenTopic = topic?.toLowerCase() || randomFrom(data.topics)?.toLowerCase();
+
+  if (!chosenDifficulty || !chosenTopic) {
+    return [];
+  }
 
   return data.problems.filter(
     (problem) =>
-      problem.difficulty.toLowerCase() === difficulty &&
-      problem.topics.map((t) => t.toLowerCase()).includes(topic) &&
+      problem.difficulty.toLowerCase() === chosenDifficulty &&
+      problem.topics.some((t) => t.toLowerCase() === chosenTopic) &&
       (includePaid || !problem.isPaid)
   );
 }
