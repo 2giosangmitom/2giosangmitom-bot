@@ -1,3 +1,9 @@
+/**
+ * @author Vo Quang Chien <voquangchien.dev@proton.me>
+ * @license MIT
+ * @copyright © 2025 Vo Quang Chien
+ */
+
 import { describe, it, expect } from 'vitest';
 import { randomFrom } from '~/lib/utils';
 

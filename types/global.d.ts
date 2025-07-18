@@ -1,3 +1,9 @@
+/**
+ * @author Vo Quang Chien <voquangchien.dev@proton.me>
+ * @license MIT
+ * @copyright © 2025 Vo Quang Chien
+ */
+
 import type { Interaction, CacheType, SlashCommandBuilder } from 'discord.js';
 
 export {};

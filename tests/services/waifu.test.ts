@@ -1,3 +1,9 @@
+/**
+ * @author Vo Quang Chien <voquangchien.dev@proton.me>
+ * @license MIT
+ * @copyright © 2025 Vo Quang Chien
+ */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getImage, titles, categories } from '~/services/waifu';
 

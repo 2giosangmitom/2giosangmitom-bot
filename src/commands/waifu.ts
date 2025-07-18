@@ -1,3 +1,9 @@
+/**
+ * @author Vo Quang Chien <voquangchien.dev@proton.me>
+ * @license MIT
+ * @copyright © 2025 Vo Quang Chien
+ */
+
 import { ChatInputCommandInteraction, EmbedBuilder, italic, SlashCommandBuilder } from 'discord.js';
 import { getImage, categories } from '~/services/waifu';
 

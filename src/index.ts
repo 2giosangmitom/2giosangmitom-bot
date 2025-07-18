@@ -1,7 +1,7 @@
 /**
- * @file Entry point for the application.
  * @author Vo Quang Chien <voquangchien.dev@proton.me>
  * @license MIT
+ * @copyright © 2025 Vo Quang Chien
  */
 
 import { pino } from 'pino';
@@ -21,15 +21,19 @@ import {
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-/** @description Pino object for logging */
-const log = pino();
+/** @description Pino logger instance */
+const log = pino({
+  transport: {
+    target: 'pino-pretty'
+  },
+  level: 'debug'
+});
 
 /**
- * @description Setup client, commands, and event handlers for the bot
+ * Initializes the Discord client and sets up commands and event handlers
  */
 async function main() {
-  // Initialize the client
-  log.info('Initialize the client.');
+  log.info('[Startup] Initializing Discord client...');
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -40,110 +44,115 @@ async function main() {
 
   client.commands = new Collection<string, Command>();
 
-  // Log in to Discord
   try {
-    log.info('Log in to discord');
-    client.login(config.token);
+    await client.login(config.token);
+    log.info('[Startup] Logged in to Discord successfully.');
   } catch (error) {
-    log.error(error);
+    log.error({ err: error }, '[Startup] Failed to log in to Discord.');
+    process.exit(1);
   }
 
-  // Client ready event
-  client.once(Events.ClientReady, (readyClient) => {
-    log.info(`Ready! Logged in as ${readyClient.user.tag}`);
+  client.once(Events.ClientReady, async (readyClient) => {
+    log.info(`[Ready] Bot is online as ${readyClient.user.tag}`);
 
-    // Refresh slash commands
-    registerSlashCommands(config.token, config.clientId, client.commands);
+    await registerSlashCommands(config.token, config.clientId, client.commands);
 
-    // Set activity
     readyClient.user.setActivity({
       type: ActivityType.Custom,
       name: 'Truyen oi anh yeu em ❤️'
     });
+
+    log.info('[Ready] Bot presence/activity set.');
   });
 
-  // Handle interactions
   client.on(Events.InteractionCreate, async (interaction) => {
-    if (interaction.isChatInputCommand()) {
-      const command = client.commands.get(interaction.commandName);
-      if (!command) {
-        interaction.reply(`No matching command for: ${interaction.commandName}`);
-        log.error(`No matching command for: ${interaction.commandName}`);
-        return;
-      }
+    if (!interaction.isChatInputCommand()) return;
 
-      try {
-        await command.execute(interaction);
-      } catch (error) {
-        let errorMsg = '⚠️ There was an error while executing this command!';
-        if (error instanceof Error) {
-          errorMsg = error.message; // More user-friendly message
-        }
+    const command = client.commands.get(interaction.commandName);
+    if (!command) {
+      const warnMsg = `[Interaction] No matching command for "${interaction.commandName}"`;
+      log.warn(warnMsg);
+      await interaction.reply({ content: warnMsg, flags: MessageFlags.Ephemeral });
+      return;
+    }
 
-        const replyPayload: InteractionReplyOptions = {
-          content: errorMsg,
-          flags: MessageFlags.Ephemeral
-        };
+    try {
+      log.info(`[Interaction] Executing command: ${interaction.commandName}`);
+      await command.execute(interaction);
+    } catch (error) {
+      const userMessage = '⚠️ There was an error while executing this command!';
+      log.error({ err: error }, `[Interaction] Error in command "${interaction.commandName}"`);
 
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(replyPayload);
-        } else {
-          await interaction.reply(replyPayload);
-        }
+      const replyPayload: InteractionReplyOptions = {
+        content: error instanceof Error ? `⚠️ ${error.message}` : userMessage,
+        flags: MessageFlags.Ephemeral
+      };
+
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp(replyPayload);
+      } else {
+        await interaction.reply(replyPayload);
       }
     }
   });
 }
 
 /**
- * @description Scan and register all commands in 'commands' directory
- * @param token The bot's token
- * @param clientId The bot's client id or application id
- * @param commands The commands collection
+ * Loads and registers all slash commands from the commands directory
  */
 async function registerSlashCommands(
   token: string,
   clientId: string,
   commands: Collection<string, Command>
 ) {
-  // Collect all command files
   const cmdDir = path.join(__dirname, 'commands');
-  const cmdFiles = (await fs.readdir(cmdDir, { encoding: 'utf-8' })).map((fileName) =>
-    path.join(cmdDir, fileName)
-  );
+  let cmdFiles: string[] = [];
 
-  // Create array of load command promises
-  const cmdPromises = cmdFiles.map(async (filePath) => {
+  try {
+    cmdFiles = (await fs.readdir(cmdDir)).map((file) => path.join(cmdDir, file));
+    log.info(`[CommandLoader] Found ${cmdFiles.length} command file(s).`);
+  } catch (error) {
+    log.error({ err: error }, '[CommandLoader] Failed to read commands directory.');
+    return;
+  }
+
+  const loadPromises = cmdFiles.map(async (filePath) => {
     try {
       const command = (await import(filePath)) as Command;
 
       if (command.data && typeof command.execute === 'function') {
         commands.set(command.data.name, command);
-        log.info(`Command at ${filePath} loaded successfully`);
+        log.info(
+          `[CommandLoader] Loaded command "${command.data.name}" from ${path.basename(filePath)}`
+        );
       } else {
-        log.warn(`Command at ${filePath} is missing "data" or "execute"`);
+        log.warn(
+          `[CommandLoader] Skipped invalid command in ${path.basename(filePath)} (missing data/execute).`
+        );
       }
     } catch (error) {
-      log.error(error);
+      log.error({ err: error }, `[CommandLoader] Failed to load command from ${filePath}`);
     }
   });
 
-  // Load all commands
-  await Promise.all(cmdPromises);
+  await Promise.all(loadPromises);
 
-  // Register slash commands
   const rest = new REST().setToken(token);
   const commandDatas = commands.map((cmd) => cmd.data.toJSON());
 
   try {
-    log.info(`Refreshing ${commandDatas.length} application (/) commands...`);
+    log.info(`[CommandRegister] Registering ${commandDatas.length} slash command(s)...`);
     const data = (await rest.put(Routes.applicationCommands(clientId), {
       body: commandDatas
     })) as RESTPostAPIApplicationCommandsJSONBody[];
-    log.info(`Successfully reloaded ${data.length} commands.`);
+
+    log.info(`[CommandRegister] Successfully registered ${data.length} command(s).`);
   } catch (error) {
-    log.error(error);
+    log.error({ err: error }, '[CommandRegister] Failed to register slash commands.');
   }
 }
 
-main();
+main().catch((err) => {
+  log.fatal({ err }, '[Fatal] Uncaught exception in main(). Exiting.');
+  process.exit(1);
+});
