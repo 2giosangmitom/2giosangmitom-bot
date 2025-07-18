@@ -6,7 +6,6 @@ await esbuild
     bundle: true,
     minify: true,
     platform: 'node',
-    outdir: 'dist',
-    external: ['pino', 'pino-pretty']
+    outdir: 'dist'
   })
   .catch(() => process.exit(1));
