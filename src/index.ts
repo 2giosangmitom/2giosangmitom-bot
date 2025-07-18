@@ -14,7 +14,9 @@ import {
   Collection,
   Routes,
   REST,
-  RESTPostAPIApplicationCommandsJSONBody
+  RESTPostAPIApplicationCommandsJSONBody,
+  InteractionReplyOptions,
+  MessageFlags
 } from 'discord.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -36,7 +38,7 @@ async function main() {
     ]
   });
 
-  const commands = new Collection<string, Command>();
+  client.commands = new Collection<string, Command>();
 
   // Log in to Discord
   try {
@@ -51,13 +53,45 @@ async function main() {
     log.info(`Ready! Logged in as ${readyClient.user.tag}`);
 
     // Refresh slash commands
-    registerSlashCommands(config.token, config.clientId, commands);
+    registerSlashCommands(config.token, config.clientId, client.commands);
 
     // Set activity
     readyClient.user.setActivity({
       type: ActivityType.Custom,
       name: 'Truyen oi anh yeu em ❤️'
     });
+  });
+
+  // Handle interactions
+  client.on(Events.InteractionCreate, async (interaction) => {
+    if (interaction.isChatInputCommand()) {
+      const command = client.commands.get(interaction.commandName);
+      if (!command) {
+        interaction.reply(`No matching command for: ${interaction.commandName}`);
+        log.error(`No matching command for: ${interaction.commandName}`);
+        return;
+      }
+
+      try {
+        await command.execute(interaction);
+      } catch (error) {
+        let errorMsg = '⚠️ There was an error while executing this command!';
+        if (error instanceof Error) {
+          errorMsg = error.message; // More user-friendly message
+        }
+
+        const replyPayload: InteractionReplyOptions = {
+          content: errorMsg,
+          flags: MessageFlags.Ephemeral
+        };
+
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(replyPayload);
+        } else {
+          await interaction.reply(replyPayload);
+        }
+      }
+    }
   });
 }
 
