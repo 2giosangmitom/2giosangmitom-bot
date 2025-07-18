@@ -22,6 +22,7 @@ declare global {
     deferReply: ReturnType<typeof vi.fn>;
     options: {
       getString: ReturnType<typeof vi.fn>;
+      getBoolean: ReturnType<typeof vi.fn>;
     };
   }
 }

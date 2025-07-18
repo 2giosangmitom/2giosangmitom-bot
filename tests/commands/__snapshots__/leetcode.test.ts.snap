@@ -1,0 +1,42 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`leetcode > execute > should reply to user if data is ready 1`] = `
+[
+  [
+    {
+      "embeds": [
+        {
+          "color": 5763719,
+          "fields": [
+            {
+              "inline": true,
+              "name": "Acceptance Rate",
+              "value": "55.94%",
+            },
+            {
+              "inline": true,
+              "name": "Paid Only",
+              "value": "❌ No",
+            },
+            {
+              "name": "Topics",
+              "value": "Array, Hash Table",
+            },
+          ],
+          "footer": {
+            "icon_url": undefined,
+            "text": "Powered by LeetCode",
+          },
+          "timestamp": "2025-01-01T00:00:00.000Z",
+          "title": "Two Sum",
+          "url": "https://leetcode.com/problems/two-sum",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`leetcode > execute > should throws error if data not ready 1`] = `[Error: No problems found at the moment]`;
+
+exports[`leetcode > execute > should throws error if no problems match preference 1`] = `[Error: No problems match your preference.]`;

@@ -20,10 +20,6 @@ let leetcodeData: LeetCodeData | null = null;
 // Fuse instance
 let fuseInstance: Fuse<string> | null = null;
 
-loadData().then((v) => {
-  leetcodeData = v;
-});
-
 const data = new SlashCommandBuilder()
   .setName('leetcode')
   .setDescription('Get random questions from LeetCode')
@@ -46,7 +42,9 @@ const data = new SlashCommandBuilder()
  */
 async function execute(interaction: ChatInputCommandInteraction) {
   if (!leetcodeData) {
-    throw new Error('No problems found at the moment');
+    if (!(leetcodeData = await loadData())) {
+      throw new Error('No problems found at the moment');
+    }
   }
 
   const difficultyParam = interaction.options.getString('difficulty') ?? undefined;

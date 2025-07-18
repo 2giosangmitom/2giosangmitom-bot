@@ -1,3 +1,9 @@
+/**
+ * @author Vo Quang Chien <voquangchien.dev@proton.me>
+ * @license MIT
+ * @copyright © 2025 Vo Quang Chien
+ */
+
 import { expect, vi, it, describe, beforeEach, afterEach } from 'vitest';
 import { downloadData, loadData, validateData, filterQuestions } from '~/services/leetcode';
 import fs from 'node:fs/promises';
