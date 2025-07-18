@@ -1,7 +1,7 @@
 {
   "name": "2giosangmitom-bot",
   "scripts": {
-    "build": "node build.mjs",
+    "build": "esbuild src/index.ts src/commands/* --bundle --platform=node --outdir=dist --minify --packages=external",
     "lint": "eslint .",
     "test": "vitest run",
     "format": "prettier --write ."
