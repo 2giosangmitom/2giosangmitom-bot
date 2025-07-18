@@ -20,6 +20,7 @@ import {
 } from 'discord.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { replyMessage } from './services/auto-response';
 
 /** @description Pino logger instance */
 const log = pino({
@@ -95,10 +96,28 @@ async function main() {
       }
     }
   });
+
+  // Handle auto-response for normal messages
+  client.on(Events.MessageCreate, (message) => {
+    if (message.author.bot) return;
+
+    const res = replyMessage(message.content);
+    if (res) {
+      message
+        .reply({
+          content: res,
+          allowedMentions: { repliedUser: false }
+        })
+        .catch((error) => log.error({ err: error }, '[MessageCreate] Failed to reply to user.'));
+    }
+  });
 }
 
 /**
- * Loads and registers all slash commands from the commands directory
+ * @description Loads and registers all slash commands from the commands directory.
+ * @param token The bot's token.
+ * @param clientId The bot's client id/application id.
+ * @param commands The command collection.
  */
 async function registerSlashCommands(
   token: string,
@@ -131,7 +150,7 @@ async function registerSlashCommands(
         );
       }
     } catch (error) {
-      log.error({ err: error }, `[CommandLoader] Failed to load command from ${filePath}`);
+      log.error({ err: error }, `[CommandLoader] Failed to load command from ${filePath}.`);
     }
   });
 
@@ -152,7 +171,15 @@ async function registerSlashCommands(
   }
 }
 
+// Start the bot
+log.info('Starting 2giosangmitom-bot...');
 main().catch((err) => {
   log.fatal({ err }, '[Fatal] Uncaught exception in main(). Exiting.');
   process.exit(1);
+});
+
+// Handle SIGINT signal
+process.once('SIGINT', (signal) => {
+  log.info(`[Signal] Received ${signal} signal. Exitting.`);
+  process.exit(0);
 });
