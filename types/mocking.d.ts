@@ -20,6 +20,7 @@ declare global {
     editReply: ReturnType<typeof vi.fn>;
     createdTimestamp: number;
     deferReply: ReturnType<typeof vi.fn>;
+    followUp: ReturnType<typeof vi.fn>;
     options: {
       getString: ReturnType<typeof vi.fn>;
       getBoolean: ReturnType<typeof vi.fn>;

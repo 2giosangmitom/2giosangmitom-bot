@@ -1,14 +1,20 @@
 {
   "name": "2giosangmitom-bot",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --outdir=dist",
+    "build": "esbuild src/index.ts --bundle --platform=node --outdir=dist --packages=external",
+    "dev": "tsx watch src/index.ts",
     "lint": "eslint .",
     "test": "vitest run",
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@discordjs/opus": "^0.10.0",
+    "@discordjs/voice": "^0.18.0",
+    "@distube/youtube": "^1.0.4",
     "discord.js": "^14.21.0",
+    "distube": "^5.0.7",
     "fuse.js": "^7.1.0",
+    "libsodium-wrappers": "^0.7.15",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0"
   },
@@ -19,6 +25,7 @@
     "eslint": "^9.31.0",
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.37.0",
     "vitest": "^3.2.4"

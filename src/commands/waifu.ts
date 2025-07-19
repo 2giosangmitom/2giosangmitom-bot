@@ -36,7 +36,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     .setFooter({ text: 'Powered by waifu.pics' })
     .setTimestamp();
 
-  await interaction.editReply({ embeds: [waifuEmbed] });
+  await interaction.followUp({ embeds: [waifuEmbed] });
 }
 
 export { data, execute };

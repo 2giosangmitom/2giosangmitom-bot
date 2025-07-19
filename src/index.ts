@@ -20,10 +20,16 @@ import {
 } from 'discord.js';
 import { replyMessage } from './services/auto-response';
 import { validateData, downloadData } from '~/services/leetcode';
-import { leetcodeCmd, pingCmd, waifuCmd } from './commands';
+import { leetcodeCmd, pingCmd, waifuCmd, yoCmd } from './commands';
+import DisTube from 'distube';
+import { YouTubePlugin } from '@distube/youtube';
+import { readFileSync } from 'node:fs';
 
 /** @description Pino logger instance */
 const log = pino({
+  transport: {
+    target: 'pino-pretty'
+  },
   level: 'debug'
 });
 
@@ -42,6 +48,13 @@ async function main() {
   });
 
   client.commands = new Collection<string, Command>();
+  client.distube = new DisTube(client, {
+    plugins: [
+      new YouTubePlugin({
+        cookies: JSON.parse(readFileSync('./cookies.json', 'utf-8'))
+      })
+    ]
+  });
 
   try {
     await client.login(config.token);
@@ -140,6 +153,7 @@ async function registerSlashCommands(
   commands.set(leetcodeCmd.data.name, leetcodeCmd as Command);
   commands.set(pingCmd.data.name, pingCmd as Command);
   commands.set(waifuCmd.data.name, waifuCmd as Command);
+  commands.set(yoCmd.data.name, yoCmd as Command);
 
   // Register commands
   const rest = new REST().setToken(token);

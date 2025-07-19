@@ -18,7 +18,7 @@ describe('waifu', () => {
       options: {
         getString: vi.fn().mockReturnValue('mock')
       },
-      editReply: vi.fn()
+      followUp: vi.fn()
     } as MockChatInteraction;
   });
 
@@ -46,7 +46,7 @@ describe('waifu', () => {
       expect(mockInteraction.deferReply).toHaveBeenCalledOnce();
       expect(mockInteraction.options.getString).toHaveBeenCalledOnce();
       expect(spyGetImage).toHaveBeenCalledOnce();
-      expect(mockInteraction.editReply.mock.calls).toMatchSnapshot();
+      expect(mockInteraction.followUp.mock.calls).toMatchSnapshot();
     }
   );
 
@@ -62,6 +62,6 @@ describe('waifu', () => {
     await execute(mockInteraction as unknown as ChatInputCommandInteraction);
 
     expect(spyGetImage).toHaveBeenCalledWith(undefined);
-    expect(mockInteraction.editReply).toHaveBeenCalledOnce();
+    expect(mockInteraction.followUp).toHaveBeenCalledOnce();
   });
 });
