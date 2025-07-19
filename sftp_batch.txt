@@ -1,4 +1,2 @@
-put -r dist
-put package.json
-put package-lock.json
+put dist/index.js
 bye

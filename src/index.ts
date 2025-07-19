@@ -18,16 +18,12 @@ import {
   InteractionReplyOptions,
   MessageFlags
 } from 'discord.js';
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import { replyMessage } from './services/auto-response';
 import { validateData, downloadData } from '~/services/leetcode';
+import { leetcodeCmd, pingCmd, waifuCmd } from './commands';
 
 /** @description Pino logger instance */
 const log = pino({
-  transport: {
-    target: 'pino-pretty'
-  },
   level: 'debug'
 });
 
@@ -55,10 +51,10 @@ async function main() {
     process.exit(1);
   }
 
-  client.once(Events.ClientReady, async (readyClient) => {
+  client.once(Events.ClientReady, (readyClient) => {
     log.info(`[Ready] Bot is online as ${readyClient.user.tag}`);
 
-    await registerSlashCommands(config.token, config.clientId, client.commands);
+    registerSlashCommands(config.token, config.clientId, client.commands);
 
     readyClient.user.setActivity({
       type: ActivityType.Custom,
@@ -140,38 +136,12 @@ async function registerSlashCommands(
   clientId: string,
   commands: Collection<string, Command>
 ) {
-  const cmdDir = path.join(__dirname, 'commands');
-  let cmdFiles: string[] = [];
+  // Set commands
+  commands.set(leetcodeCmd.data.name, leetcodeCmd as Command);
+  commands.set(pingCmd.data.name, pingCmd as Command);
+  commands.set(waifuCmd.data.name, waifuCmd as Command);
 
-  try {
-    cmdFiles = (await fs.readdir(cmdDir)).map((file) => path.join(cmdDir, file));
-    log.info(`[CommandLoader] Found ${cmdFiles.length} command file(s).`);
-  } catch (error) {
-    log.error({ err: error }, '[CommandLoader] Failed to read commands directory.');
-    return;
-  }
-
-  const loadPromises = cmdFiles.map(async (filePath) => {
-    try {
-      const command = (await import(filePath)) as Command;
-
-      if (command.data && typeof command.execute === 'function') {
-        commands.set(command.data.name, command);
-        log.info(
-          `[CommandLoader] Loaded command "${command.data.name}" from ${path.basename(filePath)}`
-        );
-      } else {
-        log.warn(
-          `[CommandLoader] Skipped invalid command in ${path.basename(filePath)} (missing data/execute).`
-        );
-      }
-    } catch (error) {
-      log.error({ err: error }, `[CommandLoader] Failed to load command from ${filePath}.`);
-    }
-  });
-
-  await Promise.all(loadPromises);
-
+  // Register commands
   const rest = new REST().setToken(token);
   const commandDatas = commands.map((cmd) => cmd.data.toJSON());
 
@@ -215,10 +185,4 @@ log.info('Starting 2giosangmitom-bot...');
 main().catch((error) => {
   log.fatal({ error }, '[Fatal] Uncaught exception in main(). Exitting.');
   process.exit(1);
-});
-
-// Handle SIGINT signal
-process.once('SIGINT', (signal) => {
-  log.info(`[Signal] Received ${signal} signal. Exitting.`);
-  process.exit(0);
 });
