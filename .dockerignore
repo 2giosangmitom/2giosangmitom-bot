@@ -2,3 +2,8 @@
 .github/
 node_modules/
 dist/
+.env
+README.md
+sftp_batch.txt
+cookies.txt
+cookies.json

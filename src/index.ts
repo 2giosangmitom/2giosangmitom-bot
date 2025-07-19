@@ -5,7 +5,6 @@
  */
 
 import { pino } from 'pino';
-import config from '../config.json';
 import {
   Client,
   Events,
@@ -23,7 +22,6 @@ import { validateData, downloadData } from '~/services/leetcode';
 import { leetcodeCmd, pingCmd, waifuCmd, yoCmd } from './commands';
 import DisTube from 'distube';
 import { YouTubePlugin } from '@distube/youtube';
-import { readFileSync } from 'node:fs';
 
 /** @description Pino logger instance */
 const log = pino({
@@ -37,6 +35,15 @@ const log = pino({
  * Initializes the Discord client and sets up commands and event handlers
  */
 async function main() {
+  // Load configuration
+  const { TOKEN, CLIENT_ID, YOUTUBE_COOKIES } = process.env;
+  if (!TOKEN || !CLIENT_ID || !YOUTUBE_COOKIES) {
+    log.fatal(
+      '[Startup] Missing required environment variables: TOKEN, CLIENT_ID or YOUTUBE_COOKIES'
+    );
+    process.exit(1);
+  }
+
   log.info('[Startup] Initializing Discord client...');
   const client = new Client({
     intents: [
@@ -51,13 +58,13 @@ async function main() {
   client.distube = new DisTube(client, {
     plugins: [
       new YouTubePlugin({
-        cookies: JSON.parse(readFileSync('./cookies.json', 'utf-8'))
+        cookies: JSON.parse(Buffer.from(YOUTUBE_COOKIES, 'base64').toString('utf-8'))
       })
     ]
   });
 
   try {
-    await client.login(config.token);
+    await client.login(TOKEN);
     log.info('[Startup] Logged in to Discord successfully.');
   } catch (error) {
     log.error({ err: error }, '[Startup] Failed to log in to Discord.');
@@ -67,7 +74,7 @@ async function main() {
   client.once(Events.ClientReady, (readyClient) => {
     log.info(`[Ready] Bot is online as ${readyClient.user.tag}`);
 
-    registerSlashCommands(config.token, config.clientId, client.commands);
+    registerSlashCommands(TOKEN, CLIENT_ID, client.commands);
 
     readyClient.user.setActivity({
       type: ActivityType.Custom,

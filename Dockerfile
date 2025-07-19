@@ -12,7 +12,7 @@ FROM node:24-alpine AS production
 WORKDIR /app
 COPY --from=builder /app/dist ./dist
 # Copy only necessary files for production
-COPY package.json package-lock.json cookies.json ./
+COPY package.json package-lock.json ./
 RUN apk add g++ make python3
 RUN npm install --omit dev
 
