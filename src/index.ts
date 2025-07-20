@@ -18,10 +18,8 @@ import {
   MessageFlags
 } from 'discord.js';
 import { replyMessage } from './services/auto-response';
-import { validateData, downloadData } from '~/services/leetcode';
-import { leetcodeCmd, pingCmd, waifuCmd, yoCmd } from './commands';
-import DisTube from 'distube';
-import { YouTubePlugin } from '@distube/youtube';
+import { validateData, downloadData, loadData } from '~/services/leetcode';
+import { leetcodeCmd, pingCmd, waifuCmd } from './commands';
 
 /** @description Pino logger instance */
 const log = pino({
@@ -36,11 +34,9 @@ const log = pino({
  */
 async function main() {
   // Load configuration
-  const { TOKEN, CLIENT_ID, YOUTUBE_COOKIES } = process.env;
-  if (!TOKEN || !CLIENT_ID || !YOUTUBE_COOKIES) {
-    log.fatal(
-      '[Startup] Missing required environment variables: TOKEN, CLIENT_ID or YOUTUBE_COOKIES'
-    );
+  const { TOKEN, CLIENT_ID } = process.env;
+  if (!TOKEN || !CLIENT_ID) {
+    log.fatal('[Startup] Missing required environment variables: TOKEN or CLIENT_ID');
     process.exit(1);
   }
 
@@ -55,13 +51,16 @@ async function main() {
   });
 
   client.commands = new Collection<string, Command>();
-  client.distube = new DisTube(client, {
-    plugins: [
-      new YouTubePlugin({
-        cookies: JSON.parse(Buffer.from(YOUTUBE_COOKIES, 'base64').toString('utf-8'))
-      })
-    ]
-  });
+
+  // Load LeetCode data
+  initializeData()
+    .then(async () => {
+      client.leetcode = await loadData();
+    })
+    .catch((error) => {
+      log.fatal({ error }, '[Fatal] Failed to initialize data. Exitting.');
+      process.exit(1);
+    });
 
   try {
     await client.login(TOKEN);
@@ -160,7 +159,6 @@ async function registerSlashCommands(
   commands.set(leetcodeCmd.data.name, leetcodeCmd as Command);
   commands.set(pingCmd.data.name, pingCmd as Command);
   commands.set(waifuCmd.data.name, waifuCmd as Command);
-  commands.set(yoCmd.data.name, yoCmd as Command);
 
   // Register commands
   const rest = new REST().setToken(token);
@@ -194,12 +192,6 @@ async function initializeData() {
   await downloadData();
   log.info('[Cache] LeetCode data downloaded and cached.');
 }
-
-// Exit if don't have cache data.
-initializeData().catch((error) => {
-  log.fatal({ error }, '[Fatal] Failed to initialize data. Exitting.');
-  process.exit(1);
-});
 
 // Start the bot
 log.info('Starting 2giosangmitom-bot...');

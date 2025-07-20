@@ -19,27 +19,6 @@ const data = new SlashCommandBuilder()
  * @description Execute music commands
  * @param interaction The slash command interaction object
  */
-async function execute(interaction: ChatInputCommandInteraction<'cached'>) {
-  const subcommand = interaction.options.getSubcommand();
-  const vc = interaction.member?.voice.channel;
-  if (!vc) {
-    throw new Error('You need to be in a voice channel to use this command!');
-  }
-
-  await interaction.deferReply();
-
-  if (subcommand === 'play') {
-    const query = interaction.options.getString('query', true);
-    interaction.client.distube.play(vc, query, {
-      textChannel: interaction.channel ?? undefined,
-      member: interaction.member,
-      metadata: { interaction }
-    });
-    const embed = new EmbedBuilder()
-      .setColor('LuminousVividPink')
-      .setDescription(`🎶 Playing music`);
-    await interaction.followUp({ embeds: [embed] });
-  }
-}
+async function execute(interaction: ChatInputCommandInteraction<'cached'>) {}
 
 export { data, execute };

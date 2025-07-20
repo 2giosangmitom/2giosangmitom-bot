@@ -12,10 +12,7 @@ import {
 } from 'discord.js';
 import Fuse from 'fuse.js';
 import { randomFrom } from '~/lib/utils';
-import { difficulties, loadData, filterQuestions } from '~/services/leetcode';
-
-// LeetCode data cache
-let leetcodeData: LeetCodeData | null = null;
+import { difficulties, filterQuestions } from '~/services/leetcode';
 
 // Fuse instance
 let fuseInstance: Fuse<string> | null = null;
@@ -41,17 +38,20 @@ const data = new SlashCommandBuilder()
  * @param interaction The slash command interaction object.
  */
 async function execute(interaction: ChatInputCommandInteraction) {
-  if (!leetcodeData) {
-    if (!(leetcodeData = await loadData())) {
-      throw new Error('No problems found at the moment');
-    }
+  if (!interaction.client.leetcode) {
+    throw new Error('No problems found at the moment');
   }
 
   const difficultyParam = interaction.options.getString('difficulty') ?? undefined;
   const topicParam = interaction.options.getString('topic') ?? undefined;
   const includePaidParam = interaction.options.getBoolean('include-paid') ?? undefined;
 
-  const questions = filterQuestions(leetcodeData, difficultyParam, topicParam, includePaidParam);
+  const questions = filterQuestions(
+    interaction.client.leetcode,
+    difficultyParam,
+    topicParam,
+    includePaidParam
+  );
   const problem = randomFrom(questions);
   if (!problem) {
     throw new Error('No problems match your preference.');
@@ -89,7 +89,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
  * @description Handles autocomplete for the topic parameter
  */
 async function autocomplete(interaction: AutocompleteInteraction) {
-  if (!leetcodeData) {
+  if (!interaction.client.leetcode) {
     throw new Error('No problems found at the moment');
   }
 
@@ -97,14 +97,18 @@ async function autocomplete(interaction: AutocompleteInteraction) {
 
   // If no search term, return first 25 topics
   if (!focusedValue || !focusedValue.trim()) {
-    const topicsToShow = leetcodeData.topics.slice(0, 25);
+    const topicsToShow = interaction.client.leetcode.topics.slice(0, 25);
     await interaction.respond(topicsToShow.map((topic) => ({ name: topic, value: topic })));
     return;
   }
 
   // Create Fuse instance for search if we have a search term
-  if (!fuseInstance && leetcodeData.topics && leetcodeData.topics.length > 0) {
-    fuseInstance = new Fuse(leetcodeData.topics, {
+  if (
+    !fuseInstance &&
+    interaction.client.leetcode.topics &&
+    interaction.client.leetcode.topics.length > 0
+  ) {
+    fuseInstance = new Fuse(interaction.client.leetcode.topics, {
       includeScore: true,
       threshold: 0.3
     });

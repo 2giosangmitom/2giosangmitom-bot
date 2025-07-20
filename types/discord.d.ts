@@ -5,13 +5,12 @@
  */
 
 import { Collection } from 'discord.js';
-import { DisTube } from 'distube';
 
 export {};
 
 declare module 'discord.js' {
   interface Client {
     commands: Collection<string, Command>;
-    distube: DisTube;
+    leetcode: LeetCodeData | null;
   }
 }

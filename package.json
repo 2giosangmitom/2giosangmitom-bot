@@ -10,9 +10,7 @@
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
     "@discordjs/voice": "^0.18.0",
-    "@distube/youtube": "^1.0.4",
     "discord.js": "^14.21.0",
-    "distube": "^5.0.7",
     "fuse.js": "^7.1.0",
     "libsodium-wrappers": "^0.7.15",
     "pino": "^9.7.0",

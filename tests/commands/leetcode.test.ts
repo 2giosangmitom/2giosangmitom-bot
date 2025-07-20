@@ -24,6 +24,9 @@ describe('leetcode', () => {
           return 'Array'; // Mock topic input
         }),
         getBoolean: vi.fn(() => null)
+      },
+      client: {
+        leetcode: null
       }
     } as MockChatInteraction;
 
@@ -54,8 +57,8 @@ describe('leetcode', () => {
     it('should throws error if no problems match preference', async () => {
       // Make it don't return null
       vi.spyOn(leetcodeService, 'loadData').mockResolvedValueOnce({} as LeetCodeData);
-
       vi.spyOn(utils, 'randomFrom').mockReturnValueOnce(null);
+      mockInteraction.client.leetcode = {} as LeetCodeData;
 
       await expect(
         execute(mockInteraction as unknown as ChatInputCommandInteraction)
@@ -83,13 +86,13 @@ describe('leetcode', () => {
           topics: ['Linked List', 'Math', 'Recursion']
         }
       ];
-      vi.spyOn(leetcodeService, 'loadData').mockResolvedValueOnce({
+      mockInteraction.client.leetcode = {
         metadata: {
           totalProblems: 3617,
           lastUpdate: '2025-07-18T08:24:59.405Z'
         },
         problems
-      } as LeetCodeData);
+      } as LeetCodeData;
 
       vi.spyOn(utils, 'randomFrom').mockReturnValueOnce(problems[0]);
       await execute(mockInteraction as unknown as ChatInputCommandInteraction);
