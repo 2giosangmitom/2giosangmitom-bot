@@ -4,6 +4,41 @@ import fs from 'node:fs';
 import type { LeetCodeData } from '~/types';
 
 describe('LeetCodeService', () => {
+  describe('constructor', () => {
+    afterEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('downloads new data when cache not found', async () => {
+      const downloadSpy = vi
+        .spyOn(LeetCodeService.prototype, 'downloadData')
+        .mockResolvedValueOnce({} as LeetCodeData);
+      vi.spyOn(fs, 'existsSync').mockReturnValueOnce(false);
+
+      const l = new LeetCodeService();
+      expect(downloadSpy).toHaveBeenCalledOnce();
+
+      await vi.waitFor(() => expect(l.isReady()).toBe(true));
+    });
+
+    it('downloads new data when cache found but not valid', async () => {
+      const downloadSpy = vi
+        .spyOn(LeetCodeService.prototype, 'downloadData')
+        .mockResolvedValueOnce({} as LeetCodeData);
+      const validateSpy = vi
+        .spyOn(LeetCodeService.prototype, 'validateData')
+        .mockReturnValueOnce(false);
+      const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValueOnce(true);
+
+      const l = new LeetCodeService();
+      expect(validateSpy).toHaveBeenCalledOnce();
+      expect(downloadSpy).toHaveBeenCalledOnce();
+      expect(existsSyncSpy).toHaveBeenCalledBefore(validateSpy);
+
+      await vi.waitFor(() => expect(l.isReady()).toBe(true));
+    });
+  });
+
   describe('isReady', () => {
     afterEach(() => {
       vi.clearAllMocks();
