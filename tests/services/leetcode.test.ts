@@ -2,6 +2,7 @@ import LeetCodeService from '~/services/leetcode';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import fs from 'node:fs';
 import type { LeetCodeData } from '~/types';
+import path from 'node:path';
 
 // Mock global fetch to avoid hitting real API
 beforeEach(() => {
@@ -51,6 +52,98 @@ describe('LeetCodeService', () => {
       expect(existsSyncSpy).toHaveBeenCalledBefore(validateSpy);
 
       await vi.waitFor(() => expect(l.isReady()).toBe(true));
+    });
+  });
+
+  describe('downloadData', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    let leetcodeObj = {
+      metadata: {
+        totalProblems: 3625,
+        lastUpdate: '2025-07-21T00:47:01.065Z'
+      },
+      problems: [
+        {
+          id: 1,
+          title: 'Two Sum',
+          difficulty: 'easy',
+          isPaid: false,
+          acRate: 0.5595,
+          url: 'https://leetcode.com/problems/two-sum',
+          topics: ['Array', 'Hash Table']
+        },
+        {
+          id: 2,
+          title: 'Add Two Numbers',
+          difficulty: 'medium',
+          isPaid: false,
+          acRate: 0.4646,
+          url: 'https://leetcode.com/problems/add-two-numbers',
+          topics: ['Linked List', 'Math', 'Recursion']
+        }
+      ],
+      topics: ['Array', 'String']
+    };
+
+    it('rejects if response not ok', async () => {
+      vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: false, status: 500 } as Response);
+
+      await expect(
+        LeetCodeService.prototype.downloadData.call(leetcodeObj)
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Request failed. Status Code: 500]`);
+    });
+
+    it('rejects if response json not valid', async () => {
+      vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ unexpected: 'data' })
+      } as Response);
+
+      await expect(
+        LeetCodeService.prototype.downloadData.call(leetcodeObj)
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `[Error: Invalid response structure from LeetCode API]`
+      );
+    });
+
+    it('writes cache to cachePath correctly', async () => {
+      vi.spyOn(path, 'join').mockReturnValue('/cache/data.json');
+      const mkdirSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+      const writeFileSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => undefined);
+      vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: {
+              problemsetQuestionListV2: {
+                questions: [
+                  {
+                    difficulty: 'EASY',
+                    id: '1',
+                    paidOnly: false,
+                    title: 'Two Sum',
+                    titleSlug: 'two-sum',
+                    topicTags: [{ name: 'Array', slug: 'array' }],
+                    acRate: 0.55
+                  }
+                ]
+              }
+            }
+          })
+      } as Response);
+      vi.setSystemTime(Date.UTC(2022, 0, 15, 17, 15, 20, 66));
+
+      const ctx = {};
+      const result = await LeetCodeService.prototype.downloadData.call(ctx);
+
+      expect(result).toMatchSnapshot();
+      expect(mkdirSpy).toHaveBeenCalledOnce();
+      expect(writeFileSpy).toHaveBeenCalledOnce();
     });
   });
 
@@ -279,6 +372,41 @@ describe('LeetCodeService', () => {
       );
       expect(result).toHaveLength(1);
       expect(result[0]?.title).toBe('Add Two Numbers');
+    });
+  });
+
+  describe('pickRandomQuestion', () => {
+    const leetcodeObj = {
+      data: {
+        metadata: { totalProblems: 2, lastUpdate: new Date().toISOString() },
+        problems: [
+          {
+            id: 1,
+            title: 'Two Sum',
+            difficulty: 'easy',
+            isPaid: false,
+            acRate: 50,
+            url: 'https://leetcode.com/problems/two-sum',
+            topics: ['Array']
+          },
+          {
+            id: 2,
+            title: 'Add Two Numbers',
+            difficulty: 'medium',
+            isPaid: false,
+            acRate: 40,
+            url: 'https://leetcode.com/problems/add-two-numbers',
+            topics: ['Linked List']
+          }
+        ],
+        topics: ['Array', 'Linked List']
+      },
+      filterQuestions: LeetCodeService.prototype.filterQuestions
+    };
+
+    it('returns undefined if no question matches filters', () => {
+      const result = LeetCodeService.prototype.pickRandomQuestion.call(leetcodeObj, 'hard');
+      expect(result).toBeUndefined();
     });
   });
 });

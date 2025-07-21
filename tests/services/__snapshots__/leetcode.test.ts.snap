@@ -1,5 +1,30 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`LeetCodeService > downloadData > writes cache to cachePath correctly 1`] = `
+{
+  "metadata": {
+    "lastUpdate": "2022-01-15T17:15:20.066Z",
+    "totalProblems": 1,
+  },
+  "problems": [
+    {
+      "acRate": 0.55,
+      "difficulty": "easy",
+      "id": "1",
+      "isPaid": false,
+      "title": "Two Sum",
+      "topics": [
+        "Array",
+      ],
+      "url": "https://leetcode.com/problems/two-sum",
+    },
+  ],
+  "topics": [
+    "Array",
+  ],
+}
+`;
+
 exports[`LeetCodeService > filterQuestions > filters by topic (case-insensitive) 1`] = `
 [
   {
