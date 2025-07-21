@@ -194,4 +194,91 @@ describe('LeetCodeService', () => {
       expect(data).toBeNull();
     });
   });
+
+  describe('filterQuestions', () => {
+    const leetcodeObj = {
+      data: {
+        metadata: { totalProblems: 3, lastUpdate: new Date().toISOString() },
+        problems: [
+          {
+            id: 1,
+            title: 'Two Sum',
+            difficulty: 'easy',
+            isPaid: false,
+            acRate: 50,
+            url: 'https://leetcode.com/problems/two-sum',
+            topics: ['Array', 'Hash Table']
+          },
+          {
+            id: 2,
+            title: 'Add Two Numbers',
+            difficulty: 'medium',
+            isPaid: true,
+            acRate: 40,
+            url: 'https://leetcode.com/problems/add-two-numbers',
+            topics: ['Linked List', 'Math']
+          },
+          {
+            id: 3,
+            title: 'LRU Cache',
+            difficulty: 'hard',
+            isPaid: false,
+            acRate: 35,
+            url: 'https://leetcode.com/problems/lru-cache',
+            topics: ['Design', 'Hash Table']
+          }
+        ],
+        topics: ['Array', 'Hash Table', 'Linked List', 'Math', 'Design']
+      }
+    };
+
+    it('returns all problems except paid-only if no filters provided', () => {
+      const result = LeetCodeService.prototype.filterQuestions.call(leetcodeObj);
+      expect(result).toHaveLength(2);
+      expect(result).toMatchSnapshot();
+    });
+
+    it('filters by difficulty', () => {
+      const result = LeetCodeService.prototype.filterQuestions.call(leetcodeObj, 'Easy');
+      expect(result).toHaveLength(1);
+      expect(result[0]?.title).toBe('Two Sum');
+    });
+
+    it('filters by topic (case-insensitive)', () => {
+      const result = LeetCodeService.prototype.filterQuestions.call(
+        leetcodeObj,
+        undefined,
+        'mAth',
+        true
+      );
+      expect(result).toHaveLength(1);
+      expect(result).toMatchSnapshot();
+    });
+
+    it('excludes paid problems when includePaid = false', () => {
+      const result = LeetCodeService.prototype.filterQuestions.call(leetcodeObj);
+      expect(result.find((p) => p.isPaid)).toBeUndefined();
+    });
+
+    it('includes paid problems when includePaid = true', () => {
+      const result = LeetCodeService.prototype.filterQuestions.call(
+        leetcodeObj,
+        undefined,
+        undefined,
+        true
+      );
+      expect(result.find((p) => p.title === 'Add Two Numbers')).toBeDefined();
+    });
+
+    it('applies all filters together', () => {
+      const result = LeetCodeService.prototype.filterQuestions.call(
+        leetcodeObj,
+        'Medium',
+        'Math',
+        true
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0]?.title).toBe('Add Two Numbers');
+    });
+  });
 });
