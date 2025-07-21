@@ -1,114 +1,47 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`leetcode > downloadData > should cache responsed json with custom structure 1`] = `
-[
-  [
-    "/mocked/path/.cache",
-    {
-      "recursive": true,
-    },
-  ],
-]
-`;
-
-exports[`leetcode > downloadData > should cache responsed json with custom structure 2`] = `
-[
-  [
-    "/mocked/path/.cache/data.json",
-    "{
-  "metadata": {
-    "totalProblems": 3,
-    "lastUpdate": "2022-01-15T17:15:20.066Z"
-  },
-  "problems": [
-    {
-      "id": 1,
-      "title": "Two Sum",
-      "difficulty": "easy",
-      "isPaid": false,
-      "acRate": 0.5593718750815264,
-      "url": "https://leetcode.com/problems/two-sum",
-      "topics": [
-        "Array",
-        "Hash Table"
-      ]
-    },
-    {
-      "id": 2,
-      "title": "Add Two Numbers",
-      "difficulty": "medium",
-      "isPaid": false,
-      "acRate": 0.46445458161815417,
-      "url": "https://leetcode.com/problems/add-two-numbers",
-      "topics": [
-        "Linked List",
-        "Math",
-        "Recursion"
-      ]
-    },
-    {
-      "id": 3,
-      "title": "Longest Substring Without Repeating Characters",
-      "difficulty": "medium",
-      "isPaid": false,
-      "acRate": 0.37124450264662995,
-      "url": "https://leetcode.com/problems/longest-substring-without-repeating-characters",
-      "topics": [
-        "Hash Table",
-        "String",
-        "Sliding Window"
-      ]
-    }
-  ],
-  "topics": [
-    "Array",
-    "Hash Table",
-    "Linked List",
-    "Math",
-    "Recursion",
-    "String",
-    "Sliding Window"
-  ]
-}",
-    "utf-8",
-  ],
-]
-`;
-
-exports[`leetcode > downloadData > should throw error if the response not ok 1`] = `[Error: Request failed. Status Code: 502]`;
-
-exports[`leetcode > downloadData > should throw error if the responsed json not valid 1`] = `[Error: Invalid response structure from LeetCode API]`;
-
-exports[`leetcode > filterQuestions > excludes paid problems by default 1`] = `[]`;
-
-exports[`leetcode > filterQuestions > filters by difficulty and topic 1`] = `
+exports[`LeetCodeService > filterQuestions > filters by topic (case-insensitive) 1`] = `
 [
   {
-    "acRate": 0.5,
+    "acRate": 40,
+    "difficulty": "medium",
+    "id": 2,
+    "isPaid": true,
+    "title": "Add Two Numbers",
+    "topics": [
+      "Linked List",
+      "Math",
+    ],
+    "url": "https://leetcode.com/problems/add-two-numbers",
+  },
+]
+`;
+
+exports[`LeetCodeService > filterQuestions > returns all problems except paid-only if no filters provided 1`] = `
+[
+  {
+    "acRate": 50,
     "difficulty": "easy",
     "id": 1,
     "isPaid": false,
     "title": "Two Sum",
     "topics": [
       "Array",
+      "Hash Table",
     ],
-    "url": "",
+    "url": "https://leetcode.com/problems/two-sum",
   },
-]
-`;
-
-exports[`leetcode > filterQuestions > includes paid problems when includePaid is true 1`] = `
-[
   {
-    "acRate": 0.4,
-    "difficulty": "medium",
-    "id": 2,
-    "isPaid": true,
-    "title": "Add Two Numbers",
+    "acRate": 35,
+    "difficulty": "hard",
+    "id": 3,
+    "isPaid": false,
+    "title": "LRU Cache",
     "topics": [
-      "Math",
+      "Design",
+      "Hash Table",
     ],
-    "url": "",
+    "url": "https://leetcode.com/problems/lru-cache",
   },
 ]
 `;

@@ -1,5 +1,0 @@
-put dist/index.js
-put package.json
-put package-lock.json
-put cookies.json
-bye

@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import tsconfig from './tsconfig.json' with { type: 'json' };
+import tsconfig from './tsconfig.json';
 import path from 'node:path';
 
 export default defineConfig({

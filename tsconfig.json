@@ -1,23 +1,35 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "outDir": "dist",
+    "lib": ["ESNext"],
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "noImplicitAny": true,
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": true,
     "rootDir": ".",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
+    "noEmit": false,
     "strict": true,
-    "declaration": false,
+    "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noPropertyAccessFromIndexSignature": false,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
     "paths": {
+      "~/*": ["./*"],
+      "~/commands/*": ["./src/commands/*"],
+      "~/types": ["./types"],
       "~/services/*": ["./src/services/*"],
-      "~/lib/*": ["./src/lib/*"],
-      "~/commands/*": ["./src/commands/*"]
+      "~/lib/*": ["./src/lib/*"]
     }
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "types"],
+  "include": ["src", "types", "tests"],
   "exclude": ["dist", "node_modules"]
 }

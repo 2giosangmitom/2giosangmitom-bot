@@ -1,15 +1,14 @@
 /**
+ * @file Manage LeetCode data, functions to filter, get question
  * @author Vo Quang Chien <voquangchien.dev@proton.me>
- * @license MIT
- * @copyright © 2025 Vo Quang Chien
  */
 
 import path from 'node:path';
-import fs from 'node:fs/promises';
-import process from 'node:process';
+import fs from 'node:fs';
+import type { LeetCodeData, LeetCodeResponse } from '~/types';
+import type { Client } from 'discord.js';
 import { randomFrom } from '~/lib/utils';
 
-const cachePath = path.join(process.cwd(), '.cache', 'data.json');
 const query = String.raw`query problemsetQuestionListV2($filters: QuestionFilterInput, $limit: Int, $skip: Int) {
   problemsetQuestionListV2(
     filters: $filters
@@ -46,114 +45,136 @@ const graphqlPostPayload = JSON.stringify({
 
 const difficulties = ['Easy', 'Medium', 'Hard'];
 
-/**
- * @description Downloads LeetCode problem data and caches it locally.
- */
-async function downloadData(): Promise<void> {
-  const response = await fetch(`https://leetcode.com/graphql`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: graphqlPostPayload
-  });
+const cachePath = path.join(process.cwd(), '.cache', 'data.json');
 
-  if (!response.ok) {
-    throw new Error(`Request failed. Status Code: ${response.status}`);
+class LeetCodeService {
+  private data: LeetCodeData | undefined;
+
+  constructor(client?: Client) {
+    const raw = this.loadData();
+    if (!fs.existsSync(cachePath) || !this.validateData(raw)) {
+      client?.log.warn('Cache file or cached data not valid');
+      client?.log.info('Downloading new data');
+      this.downloadData().then((data) => {
+        this.data = data;
+        client?.log.info('LeetCode service is ready');
+      });
+    } else {
+      this.data = raw;
+    }
   }
 
-  const json: LeetCodeResponse = await response.json();
-
-  const questions = json?.data?.problemsetQuestionListV2?.questions;
-  if (!Array.isArray(questions)) {
-    throw new Error('Invalid response structure from LeetCode API');
+  isReady() {
+    return this.data !== undefined;
   }
 
-  const problems = questions.map((q) => ({
-    id: q.id,
-    title: q.title,
-    difficulty: q.difficulty.toLowerCase(),
-    isPaid: q.paidOnly,
-    acRate: q.acRate,
-    url: `https://leetcode.com/problems/${q.titleSlug}`,
-    topics: q.topicTags.map((t) => t.name)
-  }));
+  async downloadData() {
+    const response = await fetch(`https://leetcode.com/graphql`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: graphqlPostPayload
+    });
 
-  const data: LeetCodeData = {
-    metadata: {
-      totalProblems: problems.length,
-      lastUpdate: new Date().toISOString()
-    },
-    problems,
-    topics: [...new Set(problems.map((problem) => problem.topics).flat()).values()]
-  };
+    if (!response.ok) {
+      throw new Error(`Request failed. Status Code: ${response.status}`);
+    }
 
-  await fs.mkdir(path.dirname(cachePath), { recursive: true });
-  await fs.writeFile(cachePath, JSON.stringify(data, null, 2), 'utf-8');
-}
+    const json = (await response.json()) as LeetCodeResponse;
 
-/**
- * @description Loads cached data from disk.
- */
-async function loadData(): Promise<LeetCodeData | null> {
-  try {
-    const raw = await fs.readFile(cachePath, 'utf-8');
-    return JSON.parse(raw);
-  } catch {
-    return null;
+    const questions = json?.data?.problemsetQuestionListV2?.questions;
+    if (!Array.isArray(questions)) {
+      throw new Error('Invalid response structure from LeetCode API');
+    }
+
+    const problems = questions.map((q) => ({
+      id: q.id,
+      title: q.title,
+      difficulty: q.difficulty.toLowerCase(),
+      isPaid: q.paidOnly,
+      acRate: q.acRate,
+      url: `https://leetcode.com/problems/${q.titleSlug}`,
+      topics: q.topicTags.map((t) => t.name)
+    }));
+
+    const data: LeetCodeData = {
+      metadata: {
+        totalProblems: problems.length,
+        lastUpdate: new Date().toISOString()
+      },
+      problems,
+      topics: [...new Set(problems.map((problem) => problem.topics).flat()).values()]
+    };
+
+    fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+    fs.writeFileSync(cachePath, JSON.stringify(data, null, 2), 'utf-8');
+
+    return data;
   }
-}
 
-/**
- * @description Validates the structure of the cached data.
- */
-async function validateData(): Promise<boolean> {
-  const raw = await loadData();
-  if (!raw) return false;
+  validateData(data: unknown): data is LeetCodeData {
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      !('metadata' in data) ||
+      !('problems' in data) ||
+      !('topics' in data) ||
+      typeof data.metadata !== 'object' ||
+      !data.metadata ||
+      !Array.isArray(data.problems) ||
+      !Array.isArray(data.topics)
+    )
+      return false;
 
-  const meta = raw.metadata;
-  const problems = raw.problems;
-  const topics = raw.topics;
+    const meta = data.metadata;
+    const problems = data.problems;
 
-  return (
-    meta &&
-    typeof meta.totalProblems === 'number' &&
-    typeof meta.lastUpdate === 'string' &&
-    Array.isArray(problems) &&
-    problems.every((v) => {
-      for (const key of ['id', 'title', 'difficulty', 'isPaid', 'acRate', 'url', 'topics']) {
-        if (!(key in v)) return false;
-      }
+    return (
+      meta &&
+      'totalProblems' in meta &&
+      'lastUpdate' in meta &&
+      typeof meta.totalProblems === 'number' &&
+      typeof meta.lastUpdate === 'string' &&
+      problems.every((v) => {
+        for (const key of ['id', 'title', 'difficulty', 'isPaid', 'acRate', 'url', 'topics']) {
+          if (!(key in v)) return false;
+        }
+        return true;
+      })
+    );
+  }
+
+  loadData(): unknown {
+    try {
+      const raw = fs.readFileSync(cachePath, 'utf-8');
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  filterQuestions(difficulty?: string, topic?: string, includePaid = false) {
+    if (!this.data) return [];
+
+    difficulty = difficulty?.toLowerCase();
+    topic = topic?.toLowerCase();
+
+    return this.data.problems.filter((problem) => {
+      if (!includePaid && problem.isPaid) return false;
+      if (difficulty && problem.difficulty !== difficulty) return false;
+      if (topic && !problem.topics.some((t) => t.toLowerCase() === topic)) return false;
       return true;
-    }) &&
-    Array.isArray(topics)
-  );
-}
-
-/**
- * @description Filters problems by criteria.
- * @param data The original data from LeetCode.
- * @param difficulty Allowed difficulty, random if undefined.
- * @param topic Allowed topic, random if undefined.
- * @param includePaid Include paid-only problems, false if undefined.
- */
-function filterQuestions(
-  data: LeetCodeData,
-  difficulty?: string,
-  topic?: string,
-  includePaid = false
-) {
-  const chosenDifficulty = difficulty?.toLowerCase() || randomFrom(difficulties)?.toLowerCase();
-  const chosenTopic = topic?.toLowerCase() || randomFrom(data.topics)?.toLowerCase();
-
-  if (!chosenDifficulty || !chosenTopic) {
-    return [];
+    });
   }
 
-  return data.problems.filter(
-    (problem) =>
-      problem.difficulty.toLowerCase() === chosenDifficulty &&
-      problem.topics.some((t) => t.toLowerCase() === chosenTopic) &&
-      (includePaid || !problem.isPaid)
-  );
+  pickRandomQuestion(difficulty?: string, topic?: string, includePaid = false) {
+    const filtered = this.filterQuestions(difficulty, topic, includePaid);
+    return randomFrom(filtered);
+  }
+
+  getTopics() {
+    return this.data?.topics;
+  }
 }
 
-export { downloadData, loadData, validateData, filterQuestions, difficulties };
+export default LeetCodeService;
+export { difficulties };

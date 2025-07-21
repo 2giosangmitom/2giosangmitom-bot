@@ -1,15 +1,15 @@
 /**
+ * @file Export functions to work with waifu.pics API
  * @author Vo Quang Chien <voquangchien.dev@proton.me>
- * @license MIT
- * @copyright © 2025 Vo Quang Chien
  */
 
 import { randomFrom } from '~/lib/utils';
+import type { WaifuPicsResponse } from '~/types';
 
-/** @description Allowed categories from waifu.pics */
+// Allowed categories from waifu.pics
 const categories = ['waifu', 'hug', 'kiss', 'happy', 'handhold', 'bite', 'slap'];
 
-/** @description Titles for the embed message */
+// Titles for the embed message
 const titles = [
   "Here's Your Daily Dose of Motivation ✨",
   'A Waifu Appears! 💖',
@@ -28,6 +28,17 @@ const titles = [
   "Waifu's Blessing Incoming! 🍀"
 ];
 
+function validateResponse(json: unknown): json is WaifuPicsResponse {
+  if (!json) {
+    return false;
+  }
+
+  if (typeof json === 'object' && 'url' in json && typeof json.url !== 'string') {
+    return false;
+  }
+  return true;
+}
+
 /**
  * @description Get random image from waifu.pics
  * @param category The category of the image
@@ -36,7 +47,7 @@ const titles = [
 async function getImage(
   category?: string
 ): Promise<{ url: string; category: string; title: string }> {
-  const finalCategory = category || randomFrom(categories)!;
+  const finalCategory = category ?? randomFrom(categories)!;
 
   // Reject if the provided category is not valid
   if (!categories.includes(finalCategory)) {
@@ -52,7 +63,10 @@ async function getImage(
     );
   }
 
-  const json: WaifuPicsResponse = await res.json();
+  const json = await res.json();
+  if (!validateResponse(json)) {
+    throw new Error('The responsed JSON from waifu.pics is not valid');
+  }
 
   return { url: json.url, category: finalCategory, title: randomFrom(titles)! };
 }

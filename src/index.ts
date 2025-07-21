@@ -1,201 +1,109 @@
 /**
+ * @file Entry point of the project
  * @author Vo Quang Chien <voquangchien.dev@proton.me>
- * @license MIT
- * @copyright © 2025 Vo Quang Chien
  */
 
-import { pino } from 'pino';
 import {
   Client,
-  Events,
-  GatewayIntentBits,
-  ActivityType,
   Collection,
-  Routes,
+  GatewayIntentBits,
   REST,
-  RESTPostAPIApplicationCommandsJSONBody,
-  InteractionReplyOptions,
-  MessageFlags
+  Routes,
+  type ClientEvents,
+  type RESTPostAPIApplicationCommandsJSONBody
 } from 'discord.js';
-import { replyMessage } from './services/auto-response';
-import { validateData, downloadData, loadData } from '~/services/leetcode';
-import { leetcodeCmd, pingCmd, waifuCmd } from './commands';
+import pino from 'pino';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { SlashCommand, ClientEvent } from '~/types';
+import LeetCodeService from '~/services/leetcode';
 
-/** @description Pino logger instance */
-const log = pino({
-  transport: {
-    target: 'pino-pretty'
-  },
-  level: 'debug'
-});
-
-/**
- * Initializes the Discord client and sets up commands and event handlers
- */
 async function main() {
-  // Load configuration
-  const { TOKEN, CLIENT_ID } = process.env;
+  // Check required environment variables
+  const { TOKEN, CLIENT_ID } = Bun.env;
   if (!TOKEN || !CLIENT_ID) {
-    log.fatal('[Startup] Missing required environment variables: TOKEN or CLIENT_ID');
-    process.exit(1);
+    throw new Error(`Required environment variables are not set: 'TOKEN' or 'CLIENT_ID'`);
   }
 
-  log.info('[Startup] Initializing Discord client...');
+  // Initialize discord.js client
   const client = new Client({
-    intents: [
-      GatewayIntentBits.Guilds,
-      GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent,
-      GatewayIntentBits.GuildVoiceStates
-    ]
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
   });
 
-  client.commands = new Collection<string, Command>();
+  // Logger object
+  client.log = pino({
+    transport: {
+      target: 'pino-pretty'
+    }
+  });
 
-  // Load LeetCode data
-  initializeData()
-    .then(async () => {
-      client.leetcode = await loadData();
-    })
-    .catch((error) => {
-      log.fatal({ error }, '[Fatal] Failed to initialize data. Exitting.');
-      process.exit(1);
-    });
+  // Leetcode
+  client.leetcode = new LeetCodeService(client);
 
-  try {
-    await client.login(TOKEN);
-    log.info('[Startup] Logged in to Discord successfully.');
-  } catch (error) {
-    log.error({ err: error }, '[Startup] Failed to log in to Discord.');
-    process.exit(1);
+  // Slash commands
+  client.commands = new Collection<string, SlashCommand>();
+
+  // Load event handlers
+  const eventsDir = `${import.meta.dirname}/events`;
+  const eventFiles = fs.readdirSync(eventsDir, 'utf-8').filter((file) => file.match(/\.js$|\.ts$/));
+
+  for (const file of eventFiles) {
+    const eventPath = path.join(eventsDir, file);
+    const mod = (await import(eventPath)) as {
+      default: ClientEvent<keyof ClientEvents>;
+    };
+
+    const eventRelativePath = path.relative(process.cwd(), eventPath);
+    if (
+      typeof mod.default === 'object' &&
+      mod.default.name &&
+      typeof mod.default.execute === 'function'
+    ) {
+      client.log.info(`Loading '${mod.default.name}' at '${eventRelativePath}' event`);
+      client.on(mod.default.name, mod.default.execute);
+    } else {
+      client.log.warn(`Event handler at '${eventRelativePath}' is not valid`);
+    }
   }
 
-  client.once(Events.ClientReady, (readyClient) => {
-    log.info(`[Ready] Bot is online as ${readyClient.user.tag}`);
+  // Load bot's commands
+  const commandsDir = `${import.meta.dirname}/commands`;
+  const commandFiles = fs
+    .readdirSync(commandsDir, 'utf-8')
+    .filter((file) => file.match(/\.js$|\.ts$/));
 
-    registerSlashCommands(TOKEN, CLIENT_ID, client.commands);
+  for (const file of commandFiles) {
+    const commandPath = path.join(commandsDir, file);
+    const mod = (await import(commandPath)) as { default: SlashCommand };
 
-    readyClient.user.setActivity({
-      type: ActivityType.Custom,
-      name: 'Truyen oi anh yeu em ❤️'
-    });
-
-    log.info('[Ready] Bot presence/activity set.');
-  });
-
-  client.on(Events.InteractionCreate, async (interaction) => {
-    if (interaction.isChatInputCommand()) {
-      const command = client.commands.get(interaction.commandName);
-      if (!command) {
-        const warnMsg = `[Interaction] No matching command for "${interaction.commandName}"`;
-        log.warn(warnMsg);
-        await interaction.reply({ content: warnMsg, flags: MessageFlags.Ephemeral });
-        return;
-      }
-
-      try {
-        log.info(`[Interaction] Executing command: ${interaction.commandName}`);
-        await command.execute(interaction);
-      } catch (error) {
-        const userMessage = '⚠️ There was an error while executing this command!';
-        log.error({ err: error }, `[Interaction] Error in command "${interaction.commandName}"`);
-
-        const replyPayload: InteractionReplyOptions = {
-          content: error instanceof Error ? `😭 ${error.message}` : userMessage,
-          flags: MessageFlags.Ephemeral
-        };
-
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(replyPayload);
-        } else {
-          await interaction.reply(replyPayload);
-        }
-      }
-    } else if (interaction.isAutocomplete()) {
-      const command = client.commands.get(interaction.commandName);
-      if (!command) {
-        log.warn(`[Interaction] No matching command for "${interaction.commandName}"`);
-        return;
-      }
-
-      try {
-        if (command.autocomplete) {
-          await command.autocomplete(interaction);
-        }
-      } catch (error) {
-        log.error({ error }, `[Interaction] Error in command "${interaction.commandName}"`);
-      }
+    const commandRelativePath = path.relative(process.cwd(), commandPath);
+    if (
+      typeof mod.default === 'object' &&
+      mod.default.data &&
+      typeof mod.default.execute === 'function'
+    ) {
+      client.log.info(`Loading '${mod.default.data.name}' command at '${commandRelativePath}'`);
+      client.commands.set(mod.default.data.name, mod.default);
+    } else {
+      client.log.warn(`Command at '${commandRelativePath}' is not valid`);
     }
-  });
-
-  // Handle auto-response for normal messages
-  client.on(Events.MessageCreate, (message) => {
-    if (message.author.bot) return;
-
-    const res = replyMessage(message.content);
-    if (res) {
-      message
-        .reply({
-          content: res,
-          allowedMentions: { repliedUser: false }
-        })
-        .catch((error) => log.error({ err: error }, '[MessageCreate] Failed to reply to user.'));
-    }
-  });
-}
-
-/**
- * @description Loads and registers all slash commands from the commands directory.
- * @param token The bot's token.
- * @param clientId The bot's client id/application id.
- * @param commands The command collection.
- */
-async function registerSlashCommands(
-  token: string,
-  clientId: string,
-  commands: Collection<string, Command>
-) {
-  // Set commands
-  commands.set(leetcodeCmd.data.name, leetcodeCmd as Command);
-  commands.set(pingCmd.data.name, pingCmd as Command);
-  commands.set(waifuCmd.data.name, waifuCmd as Command);
-
-  // Register commands
-  const rest = new REST().setToken(token);
-  const commandDatas = commands.map((cmd) => cmd.data.toJSON());
+  }
 
   try {
-    log.info(`[CommandRegister] Registering ${commandDatas.length} slash command(s)...`);
-    const data = (await rest.put(Routes.applicationCommands(clientId), {
+    // Register commands
+    const rest = new REST().setToken(TOKEN);
+    const commandDatas = client.commands.map((cmd) => cmd.data.toJSON());
+    client.log.info(`Registering ${commandDatas.length} slash command(s)...`);
+    const data = (await rest.put(Routes.applicationCommands(CLIENT_ID), {
       body: commandDatas
     })) as RESTPostAPIApplicationCommandsJSONBody[];
-
-    log.info(`[CommandRegister] Successfully registered ${data.length} command(s).`);
+    client.log.info(`Successfully registered ${data.length} command(s).`);
   } catch (error) {
-    log.error({ err: error }, '[CommandRegister] Failed to register slash commands.');
+    client.log.error(error);
   }
+
+  // Log in to Discord
+  client.login(TOKEN);
 }
 
-/**
- * @description Ensures LeetCode data is cached and valid, or fetches it.
- */
-async function initializeData() {
-  log.info('[Cache] Validating cached data...');
-  const valid = await validateData();
-
-  if (valid) {
-    log.info('[Cache] Cache is valid. No need to re-fetch.');
-    return;
-  } else {
-    log.warn('[Cache] Cache is not found or is invalid. Re-downloading data...');
-  }
-  await downloadData();
-  log.info('[Cache] LeetCode data downloaded and cached.');
-}
-
-// Start the bot
-log.info('Starting 2giosangmitom-bot...');
-main().catch((error) => {
-  log.fatal({ error }, '[Fatal] Uncaught exception in main(). Exitting.');
-  process.exit(1);
-});
+main();

@@ -1,7 +1,6 @@
 /**
+ * @file Unit tests for ultility functions
  * @author Vo Quang Chien <voquangchien.dev@proton.me>
- * @license MIT
- * @copyright © 2025 Vo Quang Chien
  */
 
 import { describe, it, expect } from 'vitest';
@@ -10,7 +9,7 @@ import { randomFrom } from '~/lib/utils';
 describe('randomFrom', () => {
   describe('when passing empty array', () => {
     it('returns null for empty array', () => {
-      expect(randomFrom([])).toBeNull();
+      expect(randomFrom([])).toBeUndefined();
     });
   });
 

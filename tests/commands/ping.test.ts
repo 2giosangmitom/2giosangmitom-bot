@@ -1,41 +1,31 @@
 /**
+ * @file Unit tests for ping command
  * @author Vo Quang Chien <voquangchien.dev@proton.me>
- * @license MIT
- * @copyright © 2025 Vo Quang Chien
  */
 
-import { ChatInputCommandInteraction } from 'discord.js';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { execute } from '~/commands/ping';
+import { EmbedBuilder, type Message, bold } from 'discord.js';
+import { describe, expect, it, beforeEach, vi, afterEach } from 'vitest';
+import ping from '~/commands/ping';
+import type { MockChatInteraction } from '~/types';
 
-describe('ping', () => {
+describe('ping command', () => {
   let mockInteraction: MockChatInteraction;
 
   beforeEach(() => {
     mockInteraction = {
       reply: vi.fn(),
-      fetchReply: vi.fn().mockResolvedValue({ createdTimestamp: 1000 }),
+      fetchReply: vi.fn(),
+      editReply: vi.fn(),
       client: {
         ws: {
           ping: 100
         }
-      },
-      editReply: vi.fn(),
-      createdTimestamp: 1000
+      }
     } as MockChatInteraction;
   });
 
-  it('should reply with correct ping information', async () => {
-    mockInteraction.fetchReply.mockResolvedValueOnce({
-      createdTimestamp: 1100 // 100ms later
-    });
-
-    await execute(mockInteraction as unknown as ChatInputCommandInteraction);
-
-    expect(mockInteraction.reply).toBeCalledTimes(1);
-    expect(mockInteraction.reply).toBeCalledWith('Pinging...');
-    expect(mockInteraction.editReply).toBeCalledTimes(1);
-    expect(mockInteraction.editReply.mock.calls).toMatchSnapshot();
+  afterEach(() => {
+    vi.clearAllMocks();
   });
 
   it.each([
@@ -46,26 +36,29 @@ describe('ping', () => {
     'should reply $expected when created = $created and replied = $replied',
     async ({ created, replied, expected }) => {
       mockInteraction.createdTimestamp = created;
-      mockInteraction.fetchReply.mockResolvedValueOnce({ createdTimestamp: replied });
+      mockInteraction.fetchReply.mockResolvedValueOnce({
+        createdTimestamp: replied
+      } as Message);
 
-      await execute(mockInteraction as unknown as ChatInputCommandInteraction);
+      await ping.execute(mockInteraction);
 
-      expect(mockInteraction.editReply).toBeCalledWith(
-        expect.stringContaining(`Round-trip latency: \`${expected}ms\``)
-      );
-    }
-  );
-
-  it.each([100, 200, 50, 20])(
-    'should display WebSocket ping correctly when ping = %i',
-    async (ping) => {
-      mockInteraction.client.ws.ping = ping;
-
-      await execute(mockInteraction as unknown as ChatInputCommandInteraction);
-
-      expect(mockInteraction.editReply).toBeCalledWith(
-        expect.stringContaining(`WebSocket ping: \`${ping}ms\``)
-      );
+      expect(mockInteraction.reply).toHaveBeenCalledOnce();
+      expect(mockInteraction.editReply).toHaveBeenCalledExactlyOnceWith({
+        content: '',
+        embeds: [
+          new EmbedBuilder()
+            .setTitle('🏓 Pong!')
+            .addFields(
+              { name: 'Execution time', value: bold(`${expected} ms`), inline: true },
+              {
+                name: 'WebSocket ping',
+                value: bold(`${mockInteraction.client.ws.ping} ms`),
+                inline: true
+              }
+            )
+            .setColor('Blue')
+        ]
+      });
     }
   );
 });

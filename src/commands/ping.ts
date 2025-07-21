@@ -1,29 +1,37 @@
 /**
+ * @file Ping command
  * @author Vo Quang Chien <voquangchien.dev@proton.me>
- * @license MIT
- * @copyright © 2025 Vo Quang Chien
  */
 
-import { type ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { bold, ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import type { SlashCommand } from '~/types';
 
-const data = new SlashCommandBuilder()
-  .setName('ping')
-  .setDescription('Get latency-related infomation');
+const command: SlashCommand = {
+  data: new SlashCommandBuilder().setName('ping').setDescription('Get latency-related infomation'),
+  async execute(interaction: ChatInputCommandInteraction) {
+    await interaction.reply('Pinging...');
 
-/**
- * @description Get latency information and reply to user.
- * @param interaction The slash command interaction object.
- */
-async function execute(interaction: ChatInputCommandInteraction) {
-  await interaction.reply('Pinging...');
+    const sent = await interaction.fetchReply();
+    const execTime = sent.createdTimestamp - interaction.createdTimestamp;
+    const wsPing = interaction.client.ws.ping;
 
-  const sent = await interaction.fetchReply();
-  const roundTripLatency = sent.createdTimestamp - interaction.createdTimestamp;
-  const wsPing = interaction.client.ws.ping;
+    await interaction.editReply({
+      content: '',
+      embeds: [
+        new EmbedBuilder()
+          .setTitle('🏓 Pong!')
+          .addFields(
+            { name: 'Execution time', value: bold(`${execTime} ms`), inline: true },
+            {
+              name: 'WebSocket ping',
+              value: bold(`${wsPing} ms`),
+              inline: true
+            }
+          )
+          .setColor('Blue')
+      ]
+    });
+  }
+};
 
-  await interaction.editReply(
-    `🏓 Pong!\n🏃 Round-trip latency: \`${roundTripLatency}ms\`\n🏃 WebSocket ping: \`${wsPing}ms\``
-  );
-}
-
-export { data, execute };
+export default command;
