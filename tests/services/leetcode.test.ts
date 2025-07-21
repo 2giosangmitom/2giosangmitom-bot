@@ -168,4 +168,30 @@ describe('LeetCodeService', () => {
       expect(LeetCodeService.prototype.validateData(invalidData)).toBe(false);
     });
   });
+
+  describe('loadData', () => {
+    it('returns parsed JSON when cache file exists and is valid', () => {
+      const fakeData = { hello: 'world' };
+      vi.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify(fakeData));
+
+      const data = LeetCodeService.prototype.loadData();
+      expect(data).toEqual(fakeData);
+      expect(fs.readFileSync).toHaveBeenCalledOnce();
+    });
+
+    it('returns null when file does not exist', () => {
+      vi.spyOn(fs, 'readFileSync').mockImplementation(() => {
+        throw new Error('File not found');
+      });
+
+      const data = LeetCodeService.prototype.loadData();
+      expect(data).toBeNull();
+    });
+
+    it('returns null when file content is invalid JSON', () => {
+      vi.spyOn(fs, 'readFileSync').mockReturnValue('invalid-json');
+      const data = LeetCodeService.prototype.loadData();
+      expect(data).toBeNull();
+    });
+  });
 });
