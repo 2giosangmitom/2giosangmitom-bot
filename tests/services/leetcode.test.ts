@@ -1,5 +1,5 @@
 /**
- * @file Unit tests for leetcode service
+ * @file Unit tests for LeetCodeService
  * @author Vo Quang Chien <voquangchien.dev@proton.me>
  */
 
@@ -12,8 +12,9 @@ import pino from 'pino';
 import type { LeetCodeData } from '~/types';
 import { randomFrom } from '~/lib/utils';
 
+// deterministic randomFrom
 vi.mock('~/lib/utils', () => ({
-  randomFrom: vi.fn((arr) => arr[0]) // deterministic mock
+  randomFrom: vi.fn((arr) => arr[0])
 }));
 
 describe('LeetCodeService', () => {
@@ -22,11 +23,29 @@ describe('LeetCodeService', () => {
   beforeEach(() => {
     client = new Client({ intents: [] });
     client.log = vi.mockObject(pino());
-    vi.spyOn(LeetCodeService.prototype, 'downloadData').mockResolvedValue({
-      metadata: { totalProblems: 0, lastUpdate: new Date().toISOString() },
-      problems: [],
-      topics: []
-    });
+
+    // mock fetch globally to avoid real API calls
+    vi.spyOn(global, 'fetch').mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: {
+              problemsetQuestionListV2: { questions: [] }
+            }
+          })
+      } as Response)
+    );
+
+    // stub downloadData for tests that don't test it directly
+    if (!expect.getState().currentTestName?.includes('downloadData')) {
+      vi.spyOn(LeetCodeService.prototype, 'downloadData').mockResolvedValue({
+        metadata: { totalProblems: 0, lastUpdate: new Date().toISOString() },
+        problems: [],
+        topics: []
+      });
+    }
   });
 
   afterEach(() => {
@@ -41,11 +60,9 @@ describe('LeetCodeService', () => {
       vi.spyOn(fs, 'existsSync').mockReturnValueOnce(false);
 
       const l = new LeetCodeService(client);
-
       expect(downloadSpy).toHaveBeenCalledOnce();
-      await vi.waitFor(() => {
-        expect(l.isReady()).toBe(true);
-      });
+
+      await vi.waitFor(() => expect(l.isReady()).toBe(true));
     });
 
     it('downloads new data when cache found but not valid', async () => {
@@ -58,13 +75,11 @@ describe('LeetCodeService', () => {
       const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValueOnce(true);
 
       const l = new LeetCodeService(client);
-
       expect(validateSpy).toHaveBeenCalledOnce();
       expect(downloadSpy).toHaveBeenCalledOnce();
       expect(existsSyncSpy).toHaveBeenCalledBefore(validateSpy);
-      await vi.waitFor(() => {
-        expect(l.isReady()).toBe(true);
-      });
+
+      await vi.waitFor(() => expect(l.isReady()).toBe(true));
     });
   });
 
@@ -111,17 +126,14 @@ describe('LeetCodeService', () => {
       const service = new LeetCodeService(client);
       expect(service.isReady()).toBe(false);
 
-      await vi.waitFor(() => {
-        expect(service.isReady()).toBe(true);
-      });
-
+      await vi.waitFor(() => expect(service.isReady()).toBe(true));
       expect(downloadSpy).toHaveBeenCalledOnce();
     });
   });
 
   describe('downloadData', () => {
     it('rejects if response not ok', async () => {
-      vi.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 500 } as Response);
+      (global.fetch as any).mockResolvedValueOnce({ ok: false, status: 500 } as Response);
       const l = new LeetCodeService(client);
 
       await expect(l.downloadData()).rejects.toThrowErrorMatchingInlineSnapshot(
@@ -130,10 +142,10 @@ describe('LeetCodeService', () => {
     });
 
     it('rejects if response json not valid', async () => {
-      vi.spyOn(global, 'fetch').mockResolvedValue({
+      (global.fetch as any).mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ depzai: 'oidoioi' })
+        json: () => Promise.resolve({ unexpected: 'data' })
       } as Response);
 
       const l = new LeetCodeService(client);
@@ -146,7 +158,7 @@ describe('LeetCodeService', () => {
       vi.spyOn(path, 'join').mockReturnValue('/cache/data.json');
       const mkdirSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
       const writeFileSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => undefined);
-      vi.spyOn(global, 'fetch').mockResolvedValue({
+      (global.fetch as any).mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: () =>
