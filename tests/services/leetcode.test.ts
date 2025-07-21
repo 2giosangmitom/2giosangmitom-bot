@@ -22,6 +22,11 @@ describe('LeetCodeService', () => {
   beforeEach(() => {
     client = new Client({ intents: [] });
     client.log = vi.mockObject(pino());
+    vi.spyOn(LeetCodeService.prototype, 'downloadData').mockResolvedValue({
+      metadata: { totalProblems: 0, lastUpdate: new Date().toISOString() },
+      problems: [],
+      topics: []
+    });
   });
 
   afterEach(() => {
