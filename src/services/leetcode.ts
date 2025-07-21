@@ -60,6 +60,7 @@ class LeetCodeService {
         client?.log.info('LeetCode service is ready');
       });
     } else {
+      client?.log.info('Cache is valid');
       this.data = raw;
     }
   }
@@ -112,35 +113,38 @@ class LeetCodeService {
   }
 
   validateData(data: unknown): data is LeetCodeData {
-    if (
-      !data ||
-      typeof data !== 'object' ||
-      !('metadata' in data) ||
-      !('problems' in data) ||
-      !('topics' in data) ||
-      typeof data.metadata !== 'object' ||
-      !data.metadata ||
-      !Array.isArray(data.problems) ||
-      !Array.isArray(data.topics)
-    )
+    if (!data || typeof data !== 'object' || data === null) {
       return false;
+    }
 
-    const meta = data.metadata;
-    const problems = data.problems;
+    const { metadata, problems, topics } = data as any;
 
-    return (
-      meta &&
-      'totalProblems' in meta &&
-      'lastUpdate' in meta &&
-      typeof meta.totalProblems === 'number' &&
-      typeof meta.lastUpdate === 'string' &&
-      problems.every((v) => {
-        for (const key of ['id', 'title', 'difficulty', 'isPaid', 'acRate', 'url', 'topics']) {
-          if (!(key in v)) return false;
-        }
-        return true;
-      })
-    );
+    if (
+      !metadata ||
+      typeof metadata !== 'object' ||
+      typeof metadata.totalProblems !== 'number' ||
+      !Number.isFinite(metadata.totalProblems) ||
+      typeof metadata.lastUpdate !== 'string' ||
+      !Array.isArray(problems) ||
+      !Array.isArray(topics)
+    ) {
+      return false;
+    }
+
+    return problems.every((problem) => {
+      return (
+        problem &&
+        typeof problem === 'object' &&
+        typeof problem.id === 'number' &&
+        typeof problem.title === 'string' &&
+        typeof problem.difficulty === 'string' &&
+        typeof problem.isPaid === 'boolean' &&
+        typeof problem.acRate === 'number' &&
+        typeof problem.url === 'string' &&
+        Array.isArray(problem.topics) &&
+        problem.topics.every((t: unknown) => typeof t === 'string')
+      );
+    });
   }
 
   loadData(): unknown {

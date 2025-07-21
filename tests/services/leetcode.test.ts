@@ -1,14 +1,29 @@
 import LeetCodeService from '~/services/leetcode';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import fs from 'node:fs';
 import type { LeetCodeData } from '~/types';
 
+// Mock global fetch to avoid hitting real API
+beforeEach(() => {
+  vi.spyOn(global, 'fetch').mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      data: {
+        problemsetQuestionListV2: {
+          questions: []
+        }
+      }
+    })
+  } as Response);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('LeetCodeService', () => {
   describe('constructor', () => {
-    afterEach(() => {
-      vi.clearAllMocks();
-    });
-
     it('downloads new data when cache not found', async () => {
       const downloadSpy = vi
         .spyOn(LeetCodeService.prototype, 'downloadData')
@@ -40,13 +55,9 @@ describe('LeetCodeService', () => {
   });
 
   describe('isReady', () => {
-    afterEach(() => {
-      vi.clearAllMocks();
-    });
-
     it('returns true immediately when cache is valid', () => {
       const validData: LeetCodeData = {
-        metadata: { totalProblems: 1, lastUpdate: '2025-7-21' },
+        metadata: { totalProblems: 1, lastUpdate: '2025-07-21' },
         problems: [
           {
             id: 1,
@@ -88,6 +99,73 @@ describe('LeetCodeService', () => {
 
       await vi.waitFor(() => expect(service.isReady()).toBe(true));
       expect(downloadSpy).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('validateData', () => {
+    it('returns true for valid data', () => {
+      const validData: LeetCodeData = {
+        metadata: {
+          totalProblems: 3625,
+          lastUpdate: '2025-07-21T00:47:01.065Z'
+        },
+        problems: [
+          {
+            id: 1,
+            title: 'Two Sum',
+            difficulty: 'easy',
+            isPaid: false,
+            acRate: 0.5595,
+            url: 'https://leetcode.com/problems/two-sum',
+            topics: ['Array', 'Hash Table']
+          },
+          {
+            id: 2,
+            title: 'Add Two Numbers',
+            difficulty: 'medium',
+            isPaid: false,
+            acRate: 0.4646,
+            url: 'https://leetcode.com/problems/add-two-numbers',
+            topics: ['Linked List', 'Math', 'Recursion']
+          }
+        ],
+        topics: ['Array', 'String']
+      };
+
+      expect(LeetCodeService.prototype.validateData(validData)).toBe(true);
+    });
+
+    it('returns false if data is null or not an object', () => {
+      expect(LeetCodeService.prototype.validateData(null)).toBe(false);
+      expect(LeetCodeService.prototype.validateData(undefined)).toBe(false);
+      expect(LeetCodeService.prototype.validateData('string')).toBe(false);
+    });
+
+    it('returns false if required top-level keys are missing', () => {
+      expect(LeetCodeService.prototype.validateData({})).toBe(false);
+      expect(
+        LeetCodeService.prototype.validateData({
+          metadata: { totalProblems: 1, lastUpdate: new Date().toISOString() }
+        })
+      ).toBe(false);
+    });
+
+    it('returns false if metadata is invalid', () => {
+      const invalidData = {
+        metadata: { totalProblems: 'not-a-number', lastUpdate: new Date().toISOString() },
+        problems: [],
+        topics: []
+      };
+      expect(LeetCodeService.prototype.validateData(invalidData)).toBe(false);
+    });
+
+    it('returns false if problems array has invalid structure', () => {
+      const invalidData = {
+        metadata: { totalProblems: 1, lastUpdate: new Date().toISOString() },
+        problems: [{ id: '1', title: 'Broken Problem' }],
+        topics: []
+      };
+      expect(LeetCodeService.prototype.validateData(invalidData)).toBe(false);
     });
   });
 });
