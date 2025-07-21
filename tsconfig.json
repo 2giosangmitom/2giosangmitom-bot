@@ -23,7 +23,6 @@
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
     "paths": {
-      "~/*": ["./*"],
       "~/commands/*": ["./src/commands/*"],
       "~/types": ["./types"],
       "~/services/*": ["./src/services/*"],
