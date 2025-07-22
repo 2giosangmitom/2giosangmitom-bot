@@ -7,7 +7,8 @@
     "build": "bun build --packages=external --production --target=bun --outdir=dist src/index.ts src/commands/* src/events/*",
     "dev": "bun --watch .",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:dev": "vitest"
   },
   "devDependencies": {
     "@types/bun": "^1.2.19",
