@@ -73,3 +73,27 @@ export interface LeetCodeResponse {
     };
   };
 }
+
+export interface SoundCloudTrack {
+  artwork_url: string;
+  created_at: string;
+  duration: number;
+  title: string;
+  media: {
+    transcodings: {
+      url: string;
+      preset: string;
+      quality: string;
+      is_legacy_transcoding: boolean;
+      format: {
+        protocol: string;
+        mime_type: string;
+      };
+    }[];
+  };
+}
+
+export interface SoundCloudSearchResponse {
+  collection: SoundCloudTrack[];
+  next_href: string;
+}

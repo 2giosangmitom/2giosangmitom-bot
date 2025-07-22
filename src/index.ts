@@ -60,7 +60,14 @@ async function main() {
       typeof mod.default.execute === 'function'
     ) {
       client.log.info(`Loading '${mod.default.name}' at '${eventRelativePath}' event`);
-      client.on(mod.default.name, mod.default.execute);
+
+      if (mod.default.once) {
+        client.once(mod.default.name, mod.default.execute);
+        client.log.info(`Registered '${mod.default.name}' as a one-time event handler`);
+      } else {
+        client.on(mod.default.name, mod.default.execute);
+        client.log.info(`Registered '${mod.default.name}' as a persistent event handler`);
+      }
     } else {
       client.log.warn(`Event handler at '${eventRelativePath}' is not valid`);
     }
