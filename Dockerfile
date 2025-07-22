@@ -7,7 +7,7 @@ COPY bun.lock .
 COPY tsconfig.json .
 COPY src/ ./src
 
-RUN apk add g++ make ffmpeg
+RUN apk add g++ make ffmpeg python3
 RUN bun install --production
 RUN bun run build
 
