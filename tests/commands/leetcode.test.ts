@@ -24,7 +24,8 @@ describe('leetcode command', () => {
         getString: vi.fn(),
         getBoolean: vi.fn()
       },
-      reply: vi.fn()
+      deferReply: vi.fn(),
+      followUp: vi.fn()
     } as MockChatInteraction;
 
     mockAutoCompleteInteraction = {
@@ -89,8 +90,9 @@ describe('leetcode command', () => {
         'Array',
         false
       );
-      expect(mockInteraction.reply).toHaveBeenCalledOnce();
-      expect(mockInteraction.reply.mock.calls[0]?.[0]).toMatchSnapshot();
+      expect(mockInteraction.deferReply).toHaveBeenCalledOnce();
+      expect(mockInteraction.followUp).toHaveBeenCalledOnce();
+      expect(mockInteraction.followUp.mock.calls[0]?.[0]).toMatchSnapshot();
     });
   });
 
