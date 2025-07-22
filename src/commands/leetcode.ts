@@ -3,9 +3,10 @@
  * @author Vo Quang Chien <voquangchien.dev@proton.me>
  */
 
-import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { EmbedBuilder, italic, SlashCommandBuilder } from 'discord.js';
 import Fuse from 'fuse.js';
 import { difficulties } from '~/services/leetcode';
+import { getImage } from '~/services/waifu';
 import type { SlashCommand } from '~/types';
 
 let fuseInstance: Fuse<string> | null = null;
@@ -27,6 +28,8 @@ const command: SlashCommand = {
       option.setName('include-paid').setDescription('Include paid problems')
     ),
   async execute(interaction) {
+    await interaction.deferReply();
+
     if (!interaction.client.leetcode.isReady()) {
       throw new Error('No problems found at the moment');
     }
@@ -44,32 +47,51 @@ const command: SlashCommand = {
       throw new Error('No problems match your preference.');
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle(`${problem.title}`)
-      .setURL(problem.url)
-      .setColor(
-        problem.difficulty === 'easy' ? 'Green' : problem.difficulty === 'medium' ? 'Yellow' : 'Red'
-      )
-      .setFooter({ text: `Powered by LeetCode` })
-      .setTimestamp()
-      .addFields(
-        {
-          name: 'Acceptance Rate',
-          value: `${(problem.acRate * 100).toFixed(2)}%`,
-          inline: true
-        },
-        {
-          name: 'Paid Only',
-          value: problem.isPaid ? '✅ Yes' : '❌ No',
-          inline: true
-        },
-        {
-          name: 'Topics',
-          value: problem.topics.length > 0 ? problem.topics.join(', ') : 'None'
-        }
-      );
+    const embeds = [
+      new EmbedBuilder()
+        .setTitle(`${problem.title}`)
+        .setURL(problem.url)
+        .setColor(
+          problem.difficulty === 'easy'
+            ? 'Green'
+            : problem.difficulty === 'medium'
+              ? 'Yellow'
+              : 'Red'
+        )
+        .setFooter({ text: `Powered by LeetCode` })
+        .setTimestamp()
+        .addFields(
+          {
+            name: 'Acceptance Rate',
+            value: `${(problem.acRate * 100).toFixed(2)}%`,
+            inline: true
+          },
+          {
+            name: 'Paid Only',
+            value: problem.isPaid ? '✅ Yes' : '❌ No',
+            inline: true
+          },
+          {
+            name: 'Topics',
+            value: problem.topics.length > 0 ? problem.topics.join(', ') : 'None'
+          }
+        )
+    ];
 
-    await interaction.reply({ embeds: [embed] });
+    if (problem.difficulty === 'hard') {
+      const { url, category, title } = await getImage();
+      embeds.push(
+        new EmbedBuilder()
+          .setColor('LuminousVividPink')
+          .setTitle(title)
+          .setDescription(italic(`Category: ${category}`))
+          .setImage(url)
+          .setFooter({ text: 'Powered by waifu.pics' })
+          .setTimestamp()
+      );
+    }
+
+    await interaction.followUp({ embeds });
   },
   async autocomplete(interaction) {
     if (!interaction.client.leetcode.isReady()) {
