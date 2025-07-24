@@ -25,7 +25,22 @@ const titles = [
   'Level Up Your Spirit! 🆙',
   'Another Day, Another Quest! 🗺️',
   "You're Stronger Than You Think! 🐉",
-  "Waifu's Blessing Incoming! 🍀"
+  "Waifu's Blessing Incoming! 🍀",
+  "Even Mondays Can't Stop You! ☕",
+  'Waifu Says: Believe in Yourself! 🦸',
+  'You Leveled Up in Awesomeness! 🎮',
+  'No Boss Fight Can Beat You! 🗡️',
+  'Waifu Cheering From the Sidelines! 📣',
+  'Critical Hit of Positivity! 💥',
+  'Your Effort is Super Effective! 🧩',
+  'Waifu Sent You Extra Luck Today! 🍀',
+  'Keep Grinding, Hero! 💎',
+  "You're the Main Character Today! 🎬",
+  "Waifu's Power-Up: Unlimited Motivation! 🔋",
+  'Achievement Unlocked: Keep Going! 🏅',
+  "Waifu's Smile Restores 100 HP! 💚",
+  'Plot Armor Activated! 🛡️',
+  "You're Destined for Greatness! 🌠"
 ];
 
 function validateResponse(json: unknown): json is WaifuPicsResponse {
