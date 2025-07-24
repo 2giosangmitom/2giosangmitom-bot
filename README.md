@@ -38,9 +38,11 @@ CLIENT_ID=your-application-id
 | Watch tests          | `bun run test:dev` | Run tests in watch/development mode   |
 | Format code          | `bun run format`   | Format all source files with Prettier |
 
-## 🎨 Screenshots (comming soon)
+## 🎨 Screenshots
 
-> Imagine some cute anime girl cheering you on while you solve problems... screenshots are on the way!
+When encounter a hard problem, your waifu will boost your energy.
+
+![preview](./assets/preview.png)
 
 ## 🛠 Contributing
 
