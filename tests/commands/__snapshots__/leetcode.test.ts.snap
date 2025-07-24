@@ -22,7 +22,7 @@ exports[`leetcode command > execute > should reply with an embed when a problem 
         },
       ],
       "footer": {
-        "icon_url": undefined,
+        "icon_url": "https://assets.leetcode.com/static_assets/public/icons/favicon-160x160.png",
         "text": "Powered by LeetCode",
       },
       "timestamp": "2022-01-15T17:15:20.066Z",

@@ -58,7 +58,10 @@ const command: SlashCommand = {
               ? 'Yellow'
               : 'Red'
         )
-        .setFooter({ text: `Powered by LeetCode` })
+        .setFooter({
+          text: `Powered by LeetCode`,
+          iconURL: 'https://assets.leetcode.com/static_assets/public/icons/favicon-160x160.png'
+        })
         .setTimestamp()
         .addFields(
           {
