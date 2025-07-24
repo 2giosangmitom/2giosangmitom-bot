@@ -8,7 +8,8 @@ import type {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
   SlashCommandOptionsOnlyBuilder,
-  AutocompleteInteraction
+  AutocompleteInteraction,
+  SlashCommandSubcommandsOnlyBuilder
 } from 'discord.js';
 import { vi } from 'vitest';
 
@@ -21,7 +22,7 @@ export interface ClientEvent<K extends keyof ClientEvents> {
 
 // Slash command
 export interface SlashCommand {
-  data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
+  data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder;
   execute(interaction: ChatInputCommandInteraction): Promise<void>;
   autocomplete?(interaction: AutocompleteInteraction): Promise<void>;
 }
@@ -79,6 +80,7 @@ export interface SoundCloudTrack {
   created_at: string;
   duration: number;
   title: string;
+  permalink_url: string;
   media: {
     transcodings: {
       url: string;
