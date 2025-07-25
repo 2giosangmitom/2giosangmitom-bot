@@ -17,17 +17,37 @@ async function updateClientId() {
   const match = html.matchAll(/<script[^>]+src="([^"]+)"/g);
 
   for (const src of match) {
-    const script = await fetch(src[1]!);
+    if (!src[1]) {
+      continue;
+    }
+    const script = await fetch(src[1]);
     if (!script.ok) {
       throw new Error(`Failed to fetch script: ${script.statusText}`);
     }
     const scriptText = await script.text();
     const clientIdMatch = scriptText.match(/client_id\s*:\s*"([0-9a-zA-Z]{32})"/);
-    if (clientIdMatch) {
+    if (clientIdMatch && clientIdMatch[1]) {
       const clientId = clientIdMatch[1];
       return clientId;
     }
   }
+}
+
+function filterTranscodings(transcodings: SoundCloudTrack['media']['transcodings']) {
+  return transcodings
+    .map((transcoding) => ({
+      url: transcoding.url,
+      preset: transcoding.preset,
+      quality: transcoding.quality,
+      is_legacy_transcoding: transcoding.is_legacy_transcoding,
+      format: {
+        protocol: transcoding.format.protocol,
+        mime_type: transcoding.format.mime_type
+      }
+    }))
+    .filter((transcoding) => {
+      return transcoding.format.protocol !== 'hls';
+    });
 }
 
 // Search for tracks on soundcloud
@@ -49,20 +69,7 @@ async function searchTracks(query: string, clientId: string) {
         title: track.title,
         permalink_url: track.permalink_url,
         media: {
-          transcodings: track.media.transcodings
-            .map((transcoding) => ({
-              url: transcoding.url,
-              preset: transcoding.preset,
-              quality: transcoding.quality,
-              is_legacy_transcoding: transcoding.is_legacy_transcoding,
-              format: {
-                protocol: transcoding.format.protocol,
-                mime_type: transcoding.format.mime_type
-              }
-            }))
-            .filter((transcoding) => {
-              return transcoding.format.protocol === 'hls' && transcoding.preset === 'opus_0_0';
-            })
+          transcodings: filterTranscodings(track.media.transcodings)
         }
       };
     }),
@@ -72,6 +79,10 @@ async function searchTracks(query: string, clientId: string) {
 
 // Resolve information of a track by given url
 async function resolveUrl(url: string, clientId: string) {
+  if (!/^https:\/\/soundcloud\.com\/.+/.test(url)) {
+    throw new Error('Invalid SoundCloud URL');
+  }
+
   const res = await fetch(`https://api-v2.soundcloud.com/resolve?url=${url}&client_id=${clientId}`);
 
   if (!res.ok) {
@@ -87,20 +98,7 @@ async function resolveUrl(url: string, clientId: string) {
     title: track.title,
     permalink_url: track.permalink_url,
     media: {
-      transcodings: track.media.transcodings
-        .map((transcoding) => ({
-          url: transcoding.url,
-          preset: transcoding.preset,
-          quality: transcoding.quality,
-          is_legacy_transcoding: transcoding.is_legacy_transcoding,
-          format: {
-            protocol: transcoding.format.protocol,
-            mime_type: transcoding.format.mime_type
-          }
-        }))
-        .filter((transcoding) => {
-          return transcoding.format.protocol === 'hls' && transcoding.preset === 'opus_0_0';
-        })
+      transcodings: filterTranscodings(track.media.transcodings)
     }
   };
 }

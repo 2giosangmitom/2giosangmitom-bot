@@ -32,17 +32,16 @@ function createFfmpegStream(input: string) {
     { stdio: ['ignore', 'pipe', 'pipe'] }
   );
 
-  ffmpeg.stderr.on('data', (chunk) => {
-    console.error(chunk);
-  });
-
   if (!ffmpeg.stdout) {
     throw new Error('FFmpeg did not create a stdout stream.');
   }
 
-  return createAudioResource(ffmpeg.stdout, {
-    inputType: StreamType.Raw
-  });
+  return {
+    process: ffmpeg,
+    resource: createAudioResource(ffmpeg.stdout, {
+      inputType: StreamType.Raw
+    })
+  };
 }
 
 export { createFfmpegStream };

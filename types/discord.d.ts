@@ -7,6 +7,7 @@ import { Collection } from 'discord.js';
 import type { SlashCommand } from '.';
 import pino from 'pino';
 import type LeetCodeService from '~/services/leetcode';
+import type MusicService from '~/services/music';
 
 export {};
 
@@ -15,5 +16,6 @@ declare module 'discord.js' {
     commands: Collection<string, SlashCommand>;
     log: ReturnType<typeof pino>;
     leetcode: LeetCodeService;
+    music: MusicService;
   }
 }

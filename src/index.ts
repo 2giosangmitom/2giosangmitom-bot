@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { SlashCommand, ClientEvent } from '~/types';
 import LeetCodeService from '~/services/leetcode';
+import MusicService from './services/music';
 
 async function main() {
   // Check required environment variables
@@ -42,6 +43,9 @@ async function main() {
 
   // Slash commands
   client.commands = new Collection<string, SlashCommand>();
+
+  // Music
+  client.music = new MusicService(client);
 
   // Load event handlers
   const eventsDir = `${import.meta.dirname}/events`;
