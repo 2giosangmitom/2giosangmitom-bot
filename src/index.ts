@@ -17,7 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { SlashCommand, ClientEvent } from '~/types';
 import LeetCodeService from '~/services/leetcode';
-import MusicService from './services/music';
+import MusicService from '~/services/music';
 
 async function main() {
   // Check required environment variables
@@ -115,6 +115,26 @@ async function main() {
 
   // Log in to Discord
   client.login(TOKEN);
+
+  // Graceful shutdown handling
+  const gracefulShutdown = () => {
+    client.log.info('Shutting down gracefully...');
+
+    // Cleanup music service
+    if (client.music) {
+      client.music.destroy();
+      client.log.info('Music service cleaned up.');
+    }
+
+    // Destroy client
+    client.destroy();
+    client.log.info('Discord client destroyed.');
+
+    process.exit(0);
+  };
+
+  process.on('SIGINT', gracefulShutdown);
+  process.on('SIGTERM', gracefulShutdown);
 }
 
 main();
