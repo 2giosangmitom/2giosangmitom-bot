@@ -49,18 +49,21 @@ const cachePath = path.join(process.cwd(), '.cache', 'data.json');
 
 class LeetCodeService {
   private data: LeetCodeData | undefined;
+  private client: Client | undefined;
 
   constructor(client?: Client) {
+    this.client = client;
+
     const raw = this.loadData();
     if (!fs.existsSync(cachePath) || !this.validateData(raw)) {
-      client?.log.warn('Cache file or cached data not valid');
-      client?.log.info('Downloading new data');
+      this.client?.log.warn('Cache file or cached data not valid');
+      this.client?.log.info('Downloading new data');
       this.downloadData().then((data) => {
         this.data = data;
-        client?.log.info('LeetCode service is ready');
+        this.client?.log.info('LeetCode service is ready');
       });
     } else {
-      client?.log.info('Cache is valid');
+      this.client?.log.info('Cache is valid');
       this.data = raw;
     }
   }
