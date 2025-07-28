@@ -99,5 +99,3 @@ const command: SlashCommand = {
     }
   }
 };
-
-export default command;
