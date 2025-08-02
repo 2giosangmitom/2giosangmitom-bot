@@ -1,31 +1,35 @@
 {
   "name": "2giosangmitom-bot",
-  "module": "src/index.ts",
+  "version": "2.0.0",
   "type": "module",
-  "private": true,
+  "targets": {
+    "bot": {
+      "source": "src/**/*.ts",
+      "engines": {
+        "node": ">= 24"
+      },
+      "outputFormat": "esmodule"
+    }
+  },
   "scripts": {
-    "build": "bun build --packages=external --production --target=bun --outdir=dist src/index.ts src/commands/* src/events/*",
-    "dev": "bun --watch .",
-    "format": "prettier --write .",
-    "test": "vitest run",
-    "test:dev": "vitest"
+    "dev": "tsx --env-file=.env --watch src/index.ts",
+    "test": "tsx --test",
+    "build": "parcel build",
+    "check": "tsc --noEmit",
+    "format": "prettier --write ."
   },
   "devDependencies": {
-    "@types/bun": "^1.2.19",
     "@types/node": "^24.1.0",
+    "parcel": "^2.15.4",
     "prettier": "^3.6.2",
-    "vitest": "^3.2.4"
-  },
-  "peerDependencies": {
-    "typescript": "^5.8.3"
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
   },
   "dependencies": {
-    "@discordjs/opus": "^0.10.0",
-    "@discordjs/voice": "^0.18.0",
+    "consola": "^3.4.2",
     "discord.js": "^14.21.0",
     "fuse.js": "^7.1.0",
-    "libsodium-wrappers": "^0.7.15",
-    "pino": "^9.7.0",
-    "pino-pretty": "^13.0.0"
-  }
+    "zod": "^4.0.14"
+  },
+  "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748"
 }

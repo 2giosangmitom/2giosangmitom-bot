@@ -1,34 +1,12 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext"],
-    "target": "ESNext",
-    "module": "Preserve",
-    "moduleDetection": "force",
-    "moduleResolution": "bundler",
-    "noImplicitAny": true,
-    "allowImportingTsExtensions": false,
-    "verbatimModuleSyntax": true,
-    "rootDir": ".",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": false,
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "strict": true,
-    "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noPropertyAccessFromIndexSignature": false,
-    "sourceMap": true,
-    "allowSyntheticDefaultImports": true,
-    "paths": {
-      "~/commands/*": ["./src/commands/*"],
-      "~/types": ["./types"],
-      "~/services/*": ["./src/services/*"],
-      "~/lib/*": ["./src/lib/*"]
-    }
+    "noUnusedParameters": true
   },
-  "include": ["src", "types", "tests"],
-  "exclude": ["dist", "node_modules"]
+  "include": ["src/**/*", "types/**/*", "tests/**/*"],
+  "exclude": ["node_modules"]
 }

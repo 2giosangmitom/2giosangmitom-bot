@@ -1,60 +1,71 @@
-/**
- * @file LeetCode command
- * @author Vo Quang Chien <voquangchien.dev@proton.me>
- */
-
-import { EmbedBuilder, italic, SlashCommandBuilder } from 'discord.js';
+import { EmbedBuilder, italic, MessageFlags, SlashCommandBuilder } from 'discord.js';
+import LeetcodeService from '../services/leetcode.js';
+import consola from 'consola';
+import WaifuService from '../services/waifu.js';
 import Fuse from 'fuse.js';
-import { difficulties } from '~/services/leetcode';
-import { getImage } from '~/services/waifu';
-import type { SlashCommand } from '~/types';
 
+// Load cached data if available
+let cachedData: Awaited<ReturnType<typeof LeetcodeService.loadData>> | null = null;
 let fuseInstance: Fuse<string> | null = null;
 
-const command: SlashCommand = {
+try {
+  cachedData = await LeetcodeService.loadData();
+  consola.success('Loaded cached LeetCode data successfully.');
+} catch (error) {
+  consola.warn('Failed to load cached LeetCode data:', error);
+  consola.info('Downloading fresh data from LeetCode...');
+
+  try {
+    const data = await LeetcodeService.downloadData();
+    await LeetcodeService.saveData(data);
+    consola.success('Downloaded and saved fresh LeetCode data successfully.');
+  } catch (downloadError) {
+    consola.error('Failed to download LeetCode data:', downloadError);
+  }
+}
+
+const leetcode: Command = {
   data: new SlashCommandBuilder()
     .setName('leetcode')
-    .setDescription('Get random questions from LeetCode')
+    .setDescription('Get random LeetCode problem')
     .addStringOption((option) =>
       option
         .setName('difficulty')
-        .setDescription('Set difficulty level')
-        .addChoices(difficulties.map((v) => ({ name: v, value: v })))
+        .setDescription('Filter by difficulty level')
+        .addChoices(
+          LeetcodeService.difficulties.map((difficulty) => ({
+            name: difficulty,
+            value: difficulty
+          }))
+        )
     )
     .addStringOption((option) =>
       option.setName('topic').setDescription('Set topic of the problem').setAutocomplete(true)
-    )
-    .addBooleanOption((option) =>
-      option.setName('include-paid').setDescription('Include paid problems')
     ),
   async execute(interaction) {
+    if (!cachedData) {
+      await interaction.reply({
+        content: 'No LeetCode data available. Please try again later.',
+        flags: MessageFlags.Ephemeral
+      });
+      return;
+    }
+
     await interaction.deferReply();
 
-    if (!interaction.client.leetcode.isReady()) {
-      throw new Error('No problems found at the moment');
-    }
+    const difficulty = interaction.options.getString('difficulty') ?? undefined;
+    const topic = interaction.options.getString('topic') ?? undefined;
 
-    const difficultyParam = interaction.options.getString('difficulty') ?? undefined;
-    const topicParam = interaction.options.getString('topic') ?? undefined;
-    const includePaidParam = interaction.options.getBoolean('include-paid') ?? undefined;
+    try {
+      const problem = await LeetcodeService.getRandomProblem(cachedData, difficulty, topic);
 
-    const problem = interaction.client.leetcode.pickRandomQuestion(
-      difficultyParam,
-      topicParam,
-      includePaidParam
-    );
-    if (!problem) {
-      throw new Error('No problems match your preference.');
-    }
-
-    const embeds = [
-      new EmbedBuilder()
+      const embed = new EmbedBuilder()
         .setTitle(`${problem.title}`)
         .setURL(problem.url)
         .setColor(
-          problem.difficulty === 'easy'
+          problem.difficulty === 'Easy'
             ? 'Green'
-            : problem.difficulty === 'medium'
+            : problem.difficulty === 'Medium'
               ? 'Yellow'
               : 'Red'
         )
@@ -70,43 +81,44 @@ const command: SlashCommand = {
             inline: true
           },
           {
-            name: 'Paid Only',
-            value: problem.isPaid ? '✅ Yes' : '❌ No',
-            inline: true
-          },
-          {
             name: 'Topics',
             value: problem.topics.length > 0 ? problem.topics.join(', ') : 'None'
           }
-        )
-    ];
+        );
 
-    if (problem.difficulty === 'hard') {
-      const { url, category, title } = await getImage();
-      embeds.push(
-        new EmbedBuilder()
+      await interaction.followUp({ embeds: [embed] });
+
+      if (problem.difficulty === 'Hard') {
+        const { url, category, title } = await WaifuService.getImage();
+        const motivationEmbed = new EmbedBuilder()
           .setColor('LuminousVividPink')
           .setTitle(title)
           .setDescription(italic(`Category: ${category}`))
           .setImage(url)
           .setFooter({ text: 'Powered by waifu.pics' })
-          .setTimestamp()
-      );
-    }
+          .setTimestamp();
 
-    await interaction.followUp({ embeds });
+        await interaction.followUp({
+          content: 'Motivation for solving hard problems!',
+          embeds: [motivationEmbed]
+        });
+      }
+    } catch (error) {
+      consola.error('Error fetching random problem:', error);
+      await interaction.followUp({
+        content: 'Failed to fetch a random LeetCode problem.',
+        flags: MessageFlags.Ephemeral
+      });
+    }
   },
   async autocomplete(interaction) {
-    if (!interaction.client.leetcode.isReady()) {
-      throw new Error('No problems found at the moment');
+    if (!cachedData) {
+      await interaction.respond([]);
+      return;
     }
 
     const focusedValue = interaction.options.getFocused();
-    const topics = interaction.client.leetcode.getTopics();
-
-    if (!topics) {
-      throw new Error('No topics found at the moment');
-    }
+    const topics = cachedData.topics;
 
     // If no search term, return first 25 topics
     if (!focusedValue || !focusedValue.trim()) {
@@ -136,4 +148,4 @@ const command: SlashCommand = {
   }
 };
 
-export default command;
+export default leetcode;

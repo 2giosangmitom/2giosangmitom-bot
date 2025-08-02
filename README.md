@@ -6,7 +6,6 @@
 ![Issues](https://img.shields.io/github/issues/2giosangmitom/2giosangmitom-bot?style=for-the-badge&logo=lightning&color=8bd5ca&logoColor=D9E0EE&labelColor=302D41)
 ![Repo size](https://img.shields.io/github/repo-size/2giosangmitom/2giosangmitom-bot?color=%23DDB6F2&label=SIZE&logo=codesandbox&style=for-the-badge&logoColor=D9E0EE&labelColor=302D41)
 ![LICENSE](https://img.shields.io/github/license/2giosangmitom/2giosangmitom-bot?style=for-the-badge&logo=alpinedotjs&color=ee999f&logoColor=D9E0EE&labelColor=302D41)
-![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-f78c6c?style=for-the-badge&logo=bun&logoColor=D9E0EE&labelColor=302D41)
 
 > _"Solve problems. Stay motivated. Maybe vibe a little too ✨."_
 
@@ -20,6 +19,10 @@ Welcome to **2giosangmitom-bot** - a Discord bot for practice LeetCode, get moti
 
 ## 🚀 Getting Started
 
+### Prerequisites
+
+Make sure you have [Node.js](https://nodejs.org/) (v22 or higher) and [pnpm](https://pnpm.io/) installed.
+
 First, create an `.env` file in the project root:
 
 ```env
@@ -29,14 +32,14 @@ CLIENT_ID=your-application-id
 
 ### 🖋 Commands
 
-| Task                 | Command            | Description                           |
-| -------------------- | ------------------ | ------------------------------------- |
-| Install dependencies | `bun install`      | Install all project dependencies      |
-| Development mode     | `bun run dev`      | Start the bot in watch mode           |
-| Build project        | `bun run build`    | Build for production                  |
-| Run tests            | `bun run test`     | Execute all tests once                |
-| Watch tests          | `bun run test:dev` | Run tests in watch/development mode   |
-| Format code          | `bun run format`   | Format all source files with Prettier |
+| Task                 | Command           | Description                                   |
+| -------------------- | ----------------- | --------------------------------------------- |
+| Install dependencies | `pnpm install`    | Install all project dependencies              |
+| Development mode     | `pnpm run dev`    | Start the bot in watch mode                   |
+| Build project        | `pnpm run build`  | Build for production                          |
+| Run tests            | `pnpm run test`   | Execute all tests once                        |
+| Format code          | `pnpm run format` | Format all source files with Prettier         |
+| Type check           | `pnpm run check`  | Check TypeScript types without emitting files |
 
 ## 🎨 Screenshots
 
@@ -62,9 +65,7 @@ Thanks to all the amazing contributors 💛
 
 Special thanks to all the libraries and APIs that make this bot possible, especially:
 
-- [Bun](https://bun.sh/) for the ultra-fast runtime ⚡
 - [Discord.js](https://discord.js.org/) a high-quality Discord library
 - [waifu.pics](https://waifu.pics/) for the cute anime images that keep us motivated!
-- [Vitest](https://vitest.dev/) for fast and easy testing
 
 _Made with 💻 + 🍜 at 2AM_

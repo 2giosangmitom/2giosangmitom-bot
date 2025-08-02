@@ -1,14 +1,19 @@
-FROM oven/bun:1-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
 COPY package.json .
-COPY bun.lock .
+COPY pnpm-lock.yaml .
+COPY pnpm-workspace.yaml .
 COPY tsconfig.json .
 COPY src/ ./src
 
-RUN apk add g++ make ffmpeg python3
-RUN bun install --production
-RUN bun run build
+# Enable corepack and install pnpm
+RUN corepack enable
+RUN corepack install
 
-CMD [ "bun", "dist/index.js" ]
+# Install dependencies and build the application
+RUN pnpm install
+RUN pnpm build
+
+CMD [ "node", "dist/index.js" ]

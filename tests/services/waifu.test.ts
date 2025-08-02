@@ -1,72 +1,73 @@
-/**
- * @file Unit tests for waifu service
- * @author Vo Quang Chien <voquangchien.dev@proton.me>
- */
+import { afterEach, describe, mock, test } from 'node:test';
+import WaifuService from '../../src/services/waifu.js';
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getImage, titles, categories } from '~/services/waifu';
-
-describe('getImage', () => {
-  beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      status: 200,
-      json(): unknown {
-        return { url: 'https://example.com.vn' };
-      }
-    } as Response);
-  });
-
+describe('WaifuService', () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    mock.restoreAll();
   });
 
-  it('should returns random image successfully', async () => {
-    const { url, category, title } = await getImage();
-
-    expect(global.fetch).toHaveBeenCalledOnce();
-    expect(url).toBeTruthy();
-    expect(categories).toContain(category);
-    expect(titles).toContain(title);
-  });
-
-  it('should return a valid URL format', async () => {
-    const { url } = await getImage();
-
-    expect(url).toMatch(/^https:\/\/.+/);
-  });
-
-  it('should return consistent data structure', async () => {
-    const result = await getImage();
-
-    expect(result).toHaveProperty('url');
-    expect(result).toHaveProperty('category');
-    expect(result).toHaveProperty('title');
-    expect(typeof result.url).toBe('string');
-    expect(typeof result.category).toBe('string');
-    expect(typeof result.title).toBe('string');
-  });
-
-  it('should exactly return image category if category param is defined', async () => {
-    const { category } = await getImage('bite');
-
-    expect(category).toBe('bite');
-  });
-
-  it('should throws an exception if the category is not available', async () => {
-    await expect(getImage('123jjsasds')).rejects.toThrowError(
-      'The 123jjsasds category is not valid'
+  test('should reject invalid category', async (t) => {
+    await t.assert.rejects(
+      async () => {
+        await WaifuService.getImage('invalid-category');
+      },
+      {
+        message: 'The `invalid-category` category is not valid'
+      }
     );
   });
 
-  it('should throws an exception if the response is not ok', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: false,
-      status: 404
-    } as Response);
+  test('should return a valid image object', async (t) => {
+    t.mock.method(global, 'fetch', async () => {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          url: 'https://example.com/image.jpg'
+        })
+      } as Response;
+    });
 
-    await expect(getImage()).rejects.toThrowError(
-      'The waifu.pics API is not available at the moment. Status code: 404'
+    const image = await WaifuService.getImage('waifu');
+    t.assert.equal(image.url, 'https://example.com/image.jpg');
+  });
+
+  test('should throw an error if the API is not available', async (t) => {
+    t.mock.method(global, 'fetch', async () => {
+      return {
+        ok: false,
+        status: 503
+      } as Response;
+    });
+
+    await t.assert.rejects(
+      async () => {
+        await WaifuService.getImage('waifu');
+      },
+      {
+        message: 'The waifu.pics API is not available at the moment. Status code: 503'
+      }
+    );
+  });
+
+  test('should throw an error if the response JSON is invalid', async (t) => {
+    t.mock.method(global, 'fetch', async () => {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          invalidField: 'This is not a valid response'
+        })
+      } as Response;
+    });
+
+    await t.assert.rejects(
+      async () => {
+        await WaifuService.getImage('waifu');
+      },
+      {
+        message: /The responsed JSON from waifu.pics is not valid/
+      }
     );
   });
 });
