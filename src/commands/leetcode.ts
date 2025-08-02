@@ -8,21 +8,27 @@ import Fuse from 'fuse.js';
 let cachedData: Awaited<ReturnType<typeof LeetcodeService.loadData>> | null = null;
 let fuseInstance: Fuse<string> | null = null;
 
-try {
-  cachedData = await LeetcodeService.loadData();
-  consola.success('Loaded cached LeetCode data successfully.');
-} catch (error) {
-  consola.warn('Failed to load cached LeetCode data:', error);
-  consola.info('Downloading fresh data from LeetCode...');
-
+process.nextTick(async () => {
   try {
-    const data = await LeetcodeService.downloadData();
-    await LeetcodeService.saveData(data);
-    consola.success('Downloaded and saved fresh LeetCode data successfully.');
-  } catch (downloadError) {
-    consola.error('Failed to download LeetCode data:', downloadError);
+    cachedData = await LeetcodeService.loadData();
+    consola.success('Loaded cached LeetCode data successfully.');
+  } catch (error) {
+    if (error instanceof Error) {
+      consola.warn('Failed to load cached LeetCode data:', error.message);
+      consola.info('Downloading fresh data from LeetCode...');
+    }
+
+    try {
+      const data = await LeetcodeService.downloadData();
+      await LeetcodeService.saveData(data);
+      consola.success('Downloaded and saved fresh LeetCode data successfully.');
+    } catch (downloadError) {
+      if (error instanceof Error) {
+        consola.error('Failed to download LeetCode data:', downloadError);
+      }
+    }
   }
-}
+});
 
 const leetcode: Command = {
   data: new SlashCommandBuilder()

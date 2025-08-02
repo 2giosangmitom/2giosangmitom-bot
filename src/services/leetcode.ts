@@ -1,6 +1,6 @@
 import path from 'node:path';
 import z from 'zod';
-import fs from 'node:fs/promises';
+import fs from 'node:fs';
 import { randomFrom, toTitleCase } from '../lib/utils.js';
 
 namespace LeetcodeService {
@@ -89,7 +89,7 @@ namespace LeetcodeService {
 
   export async function saveData(data: Awaited<ReturnType<typeof downloadData>>): Promise<void> {
     const dir = path.dirname(cachePath);
-    await fs.mkdir(dir, { recursive: true });
+    await fs.promises.mkdir(dir, { recursive: true });
 
     const transformedData = data
       .map((q) => ({
@@ -108,7 +108,7 @@ namespace LeetcodeService {
       q.topics.forEach((topic) => topicsSet.add(topic));
     });
 
-    await fs.writeFile(
+    await fs.promises.writeFile(
       cachePath,
       JSON.stringify(
         {
@@ -123,7 +123,11 @@ namespace LeetcodeService {
   }
 
   export async function loadData() {
-    const data = await fs.readFile(cachePath, 'utf-8');
+    if (!fs.existsSync(cachePath)) {
+      throw new Error('Cache is not exists');
+    }
+
+    const data = await fs.promises.readFile(cachePath, 'utf-8');
     const schema = z.object({
       questions: z.array(
         z.object({
