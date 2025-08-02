@@ -22,6 +22,9 @@ process.nextTick(async () => {
       const data = await LeetcodeService.downloadData();
       await LeetcodeService.saveData(data);
       consola.success('Downloaded and saved fresh LeetCode data successfully.');
+
+      // Reload data again
+      cachedData = await LeetcodeService.loadData();
     } catch (downloadError) {
       if (error instanceof Error) {
         consola.error('Failed to download LeetCode data:', downloadError);
