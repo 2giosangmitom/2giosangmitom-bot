@@ -19,7 +19,7 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@types/node": "^24.1.0",
+    "@types/node": "^24.2.1",
     "parcel": "^2.15.4",
     "prettier": "^3.6.2",
     "tsx": "^4.20.3",
