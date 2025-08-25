@@ -14,30 +14,33 @@ export const setCachedData = (data) => {
   cachedData = data;
 };
 
-process.nextTick(async () => {
-  try {
-    cachedData = await LeetcodeService.loadData();
-    consola.success('Loaded cached LeetCode data successfully.');
-  } catch (error) {
-    if (error instanceof Error) {
-      consola.warn('Failed to load cached LeetCode data:', error.message);
-      consola.info('Downloading fresh data from LeetCode...');
-    }
-
+// Only load data automatically if not in test environment
+if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'test') {
+  process.nextTick(async () => {
     try {
-      const data = await LeetcodeService.downloadData();
-      await LeetcodeService.saveData(data);
-      consola.success('Downloaded and saved fresh LeetCode data successfully.');
-
-      // Reload data again
       cachedData = await LeetcodeService.loadData();
-    } catch (downloadError) {
+      consola.success('Loaded cached LeetCode data successfully.');
+    } catch (error) {
       if (error instanceof Error) {
-        consola.error('Failed to download LeetCode data:', downloadError);
+        consola.warn('Failed to load cached LeetCode data:', error.message);
+        consola.info('Downloading fresh data from LeetCode...');
+      }
+
+      try {
+        const data = await LeetcodeService.downloadData();
+        await LeetcodeService.saveData(data);
+        consola.success('Downloaded and saved fresh LeetCode data successfully.');
+
+        // Reload data again
+        cachedData = await LeetcodeService.loadData();
+      } catch (downloadError) {
+        if (error instanceof Error) {
+          consola.error('Failed to download LeetCode data:', downloadError);
+        }
       }
     }
-  }
-});
+  });
+}
 
 const leetcode = {
   data: new SlashCommandBuilder()
