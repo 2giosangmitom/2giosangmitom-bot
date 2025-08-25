@@ -6,7 +6,7 @@ import WaifuService from '../../src/services/waifu.js';
 
 describe('Leetcode Command', () => {
   let originalCachedData;
-  
+
   afterEach(() => {
     mock.restoreAll();
     // Restore original cached data if it was saved
@@ -25,9 +25,9 @@ describe('Leetcode Command', () => {
   });
 
   test('should have difficulty choices that match LeetcodeService difficulties', () => {
-    const difficultyOption = leetcodeCommand.data.options.find(opt => opt.name === 'difficulty');
-    const choices = difficultyOption.choices.map(choice => choice.value);
-    
+    const difficultyOption = leetcodeCommand.data.options.find((opt) => opt.name === 'difficulty');
+    const choices = difficultyOption.choices.map((choice) => choice.value);
+
     assert.deepStrictEqual(choices.sort(), LeetcodeService.difficulties.sort());
   });
 
@@ -48,7 +48,7 @@ describe('Leetcode Command', () => {
 
     assert.strictEqual(mockInteraction.reply.mock.callCount(), 1);
     assert.strictEqual(mockInteraction.deferReply.mock.callCount(), 0);
-    
+
     const replyCall = mockInteraction.reply.mock.calls[0];
     assert.ok(replyCall.arguments[0].content.includes('No LeetCode data available'));
   });

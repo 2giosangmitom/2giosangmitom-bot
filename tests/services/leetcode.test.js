@@ -6,7 +6,7 @@ import LeetcodeService from '../../src/services/leetcode.js';
 
 describe('LeetcodeService', () => {
   const testCachePath = path.join(process.cwd(), '.cache-test', 'data.json');
-  
+
   afterEach(() => {
     mock.restoreAll();
     // Clean up test cache
@@ -65,10 +65,9 @@ describe('LeetcodeService', () => {
       statusText: 'Internal Server Error'
     }));
 
-    await assert.rejects(
-      () => LeetcodeService.downloadData(),
-      { message: 'Failed to fetch data: Internal Server Error' }
-    );
+    await assert.rejects(() => LeetcodeService.downloadData(), {
+      message: 'Failed to fetch data: Internal Server Error'
+    });
   });
 
   test('should save and load data correctly', async () => {
@@ -125,14 +124,14 @@ describe('LeetcodeService', () => {
     };
 
     await saveDataWithTestPath(mockData);
-    
+
     // Verify file was created
     assert.ok(fs.existsSync(testCachePath));
-    
+
     // Read and verify the data manually since we can't modify the service
     const data = await fs.promises.readFile(testCachePath, 'utf-8');
     const parsedData = JSON.parse(data);
-    
+
     assert.ok(parsedData.questions);
     assert.ok(parsedData.topics);
     assert.strictEqual(parsedData.questions.length, 1);
@@ -145,7 +144,7 @@ describe('LeetcodeService', () => {
   test('should throw error when cache does not exist', async () => {
     // Test with a definitely non-existent path
     const nonExistentPath = '/definitely/non/existent/path.json';
-    
+
     // Create a temporary loadData function that uses the non-existent path
     const loadDataWithTestPath = async () => {
       if (!fs.existsSync(nonExistentPath)) {
@@ -155,10 +154,7 @@ describe('LeetcodeService', () => {
       return null;
     };
 
-    await assert.rejects(
-      () => loadDataWithTestPath(),
-      { message: 'Cache is not exists' }
-    );
+    await assert.rejects(() => loadDataWithTestPath(), { message: 'Cache is not exists' });
   });
 
   test('should filter problems by difficulty', async () => {
@@ -237,9 +233,8 @@ describe('LeetcodeService', () => {
       topics: ['Array']
     };
 
-    await assert.rejects(
-      () => LeetcodeService.getRandomProblem(mockData, 'Hard'),
-      { message: 'No problems found matching the criteria.' }
-    );
+    await assert.rejects(() => LeetcodeService.getRandomProblem(mockData, 'Hard'), {
+      message: 'No problems found matching the criteria.'
+    });
   });
 });

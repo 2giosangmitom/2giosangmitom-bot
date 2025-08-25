@@ -10,7 +10,9 @@ let fuseInstance = null;
 
 // Function to get cached data (useful for testing)
 export const getCachedData = () => cachedData;
-export const setCachedData = (data) => { cachedData = data; };
+export const setCachedData = (data) => {
+  cachedData = data;
+};
 
 process.nextTick(async () => {
   try {

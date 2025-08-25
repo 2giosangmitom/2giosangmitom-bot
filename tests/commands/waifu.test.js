@@ -11,7 +11,10 @@ describe('Waifu Command', () => {
   test('should have correct command data structure', () => {
     assert.ok(waifuCommand.data);
     assert.strictEqual(waifuCommand.data.name, 'waifu');
-    assert.strictEqual(waifuCommand.data.description, 'Get a random cute anime girl image to boost your motivation 💖');
+    assert.strictEqual(
+      waifuCommand.data.description,
+      'Get a random cute anime girl image to boost your motivation 💖'
+    );
     assert.ok(typeof waifuCommand.execute === 'function');
   });
 
@@ -65,7 +68,7 @@ describe('Waifu Command', () => {
 
     assert.strictEqual(mockInteraction.deferReply.mock.callCount(), 1);
     assert.strictEqual(mockInteraction.followUp.mock.callCount(), 1);
-    
+
     // Verify WaifuService was called with the correct category
     const getImageCall = WaifuService.getImage.mock.calls[0];
     assert.strictEqual(getImageCall.arguments[0], 'happy');
@@ -85,16 +88,13 @@ describe('Waifu Command', () => {
     });
 
     // The command should throw since we're not handling errors in the command itself
-    await assert.rejects(
-      () => waifuCommand.execute(mockInteraction),
-      { message: 'API Error' }
-    );
+    await assert.rejects(() => waifuCommand.execute(mockInteraction), { message: 'API Error' });
   });
 
   test('should have category choices that match WaifuService categories', () => {
     const choices = waifuCommand.data.options[0].choices;
-    const categoryChoices = choices.map(choice => choice.value);
-    
+    const categoryChoices = choices.map((choice) => choice.value);
+
     assert.deepStrictEqual(categoryChoices.sort(), WaifuService.categories.sort());
   });
 });

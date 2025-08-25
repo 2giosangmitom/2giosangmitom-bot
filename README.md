@@ -32,13 +32,13 @@ CLIENT_ID=your-application-id
 
 ### 🖋 Commands
 
-| Task                 | Command           | Description                                   |
-| -------------------- | ----------------- | --------------------------------------------- |
-| Install dependencies | `pnpm install`    | Install all project dependencies              |
-| Development mode     | `pnpm run dev`    | Start the bot in watch mode                   |
-| Start bot            | `pnpm run start`  | Start the bot in production mode              |
-| Run tests            | `pnpm run test`   | Execute all tests once                        |
-| Format code          | `pnpm run format` | Format all source files with Prettier         |
+| Task                 | Command           | Description                           |
+| -------------------- | ----------------- | ------------------------------------- |
+| Install dependencies | `pnpm install`    | Install all project dependencies      |
+| Development mode     | `pnpm run dev`    | Start the bot in watch mode           |
+| Start bot            | `pnpm run start`  | Start the bot in production mode      |
+| Run tests            | `pnpm run test`   | Execute all tests once                |
+| Format code          | `pnpm run format` | Format all source files with Prettier |
 
 ## 🎨 Screenshots
 
