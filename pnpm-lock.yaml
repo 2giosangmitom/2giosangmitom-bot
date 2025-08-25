@@ -17,6 +17,9 @@ importers:
       fuse.js:
         specifier: ^7.1.0
         version: 7.1.0
+      node-cron:
+        specifier: ^4.2.1
+        version: 4.2.1
       zod:
         specifier: ^4.1.1
         version: 4.1.1
@@ -103,6 +106,10 @@ packages:
 
   magic-bytes.js@1.12.1:
     resolution: {integrity: sha512-ThQLOhN86ZkJ7qemtVRGYM+gRgR8GEXNli9H/PMvpnZsE44Xfh3wx9kGJaldg314v85m+bFW6WBMaVHJc/c3zA==}
+
+  node-cron@4.2.1:
+    resolution: {integrity: sha512-lgimEHPE/QDgFlywTd8yTR61ptugX3Qer29efeyWw2rv259HtGBNn1vZVmp8lB9uo9wC0t/AT4iGqXxia+CJFg==}
+    engines: {node: '>=6.0.0'}
 
   prettier@3.6.2:
     resolution: {integrity: sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==}
@@ -237,6 +244,8 @@ snapshots:
   lodash@4.17.21: {}
 
   magic-bytes.js@1.12.1: {}
+
+  node-cron@4.2.1: {}
 
   prettier@3.6.2: {}
 

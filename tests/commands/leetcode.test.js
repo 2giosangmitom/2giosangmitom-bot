@@ -1,6 +1,10 @@
 import { afterEach, describe, test, mock } from 'node:test';
 import assert from 'node:assert';
-import leetcodeCommand, { getCachedData, setCachedData } from '../../src/commands/leetcode.js';
+import leetcodeCommand, {
+  getCachedData,
+  setCachedData,
+  updateLeetCodeData
+} from '../../src/commands/leetcode.js';
 import LeetcodeService from '../../src/services/leetcode.js';
 import WaifuService from '../../src/services/waifu.js';
 
@@ -212,5 +216,51 @@ describe('Leetcode Command', () => {
 
     const followUpCall = mockInteraction.followUp.mock.calls[0];
     assert.ok(followUpCall.arguments[0].content.includes('Failed to fetch'));
+  });
+
+  test('should have cron scheduling functionality', () => {
+    // Verify that the leetcode command module loads without errors with node-cron
+    // This indirectly tests that node-cron is properly imported and doesn't cause issues
+    assert.ok(leetcodeCommand);
+    assert.ok(typeof leetcodeCommand.execute === 'function');
+    assert.ok(typeof leetcodeCommand.autocomplete === 'function');
+  });
+
+  test('should export updateLeetCodeData function', () => {
+    assert.ok(typeof updateLeetCodeData === 'function');
+  });
+
+  test('should handle updateLeetCodeData function correctly', async () => {
+    // Mock consola to avoid logs during testing
+    const consolaMock = await import('consola');
+    mock.method(consolaMock.default, 'info', () => {});
+    mock.method(consolaMock.default, 'success', () => {});
+    mock.method(consolaMock.default, 'error', () => {});
+
+    // Mock the service methods
+    const mockData = [
+      {
+        id: 1,
+        title: 'Test',
+        difficulty: 'EASY',
+        paidOnly: false,
+        topicTags: [],
+        acRate: 0.5,
+        titleSlug: 'test'
+      }
+    ];
+    const mockLoadData = { questions: [], topics: [] };
+
+    mock.method(LeetcodeService, 'downloadData', async () => mockData);
+    mock.method(LeetcodeService, 'saveData', async () => {});
+    mock.method(LeetcodeService, 'loadData', async () => mockLoadData);
+
+    // Test the function
+    await updateLeetCodeData();
+
+    // Verify the methods were called
+    assert.strictEqual(LeetcodeService.downloadData.mock.callCount(), 1);
+    assert.strictEqual(LeetcodeService.saveData.mock.callCount(), 1);
+    assert.strictEqual(LeetcodeService.loadData.mock.callCount(), 1);
   });
 });

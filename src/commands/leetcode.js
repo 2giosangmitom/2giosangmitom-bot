@@ -3,6 +3,7 @@ import LeetcodeService from '../services/leetcode.js';
 import consola from 'consola';
 import WaifuService from '../services/waifu.js';
 import Fuse from 'fuse.js';
+import cron from 'node-cron';
 
 // Load cached data if available
 let cachedData = null;
@@ -14,8 +15,22 @@ export const setCachedData = (data) => {
   cachedData = data;
 };
 
+// Function to download and update LeetCode data
+export async function updateLeetCodeData() {
+  try {
+    consola.info('Starting scheduled LeetCode data update...');
+    const data = await LeetcodeService.downloadData();
+    await LeetcodeService.saveData(data);
+    cachedData = await LeetcodeService.loadData();
+    consola.success('Successfully updated LeetCode data cache.');
+  } catch (error) {
+    consola.error('Failed to update LeetCode data:', error);
+  }
+}
+
 // Only load data automatically if not in test environment
 if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'test') {
+  // Initial data loading
   process.nextTick(async () => {
     try {
       cachedData = await LeetcodeService.loadData();
@@ -40,6 +55,12 @@ if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'test') {
       }
     }
   });
+
+  // Schedule daily data updates at 2:00 AM
+  cron.schedule('0 2 * * *', updateLeetCodeData, {
+    timezone: 'UTC'
+  });
+  consola.info('Scheduled daily LeetCode data updates at 2:00 AM UTC');
 }
 
 const leetcode = {

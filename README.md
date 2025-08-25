@@ -16,6 +16,7 @@ Welcome to **2giosangmitom-bot** - a Discord bot for practice LeetCode, get moti
 - **🎯 Random LeetCode Question**: Get a random problem whenever you need it.
 - **⚙️ Smart Filtering**: Pick problems by difficulty, topic, or paid-only status.
 - **💖 Motivation Boost**: Stuck on a tough one? Summon a random cute anime girl image from [waifu.pics](https://waifu.pics/) to keep your spirits up!
+- **🕐 Automatic Updates**: LeetCode problem data is automatically updated daily at 2:00 AM UTC to ensure you get the latest problems.
 
 ## 🚀 Getting Started
 
@@ -54,6 +55,7 @@ Feel free to open an issue or submit a pull request.
 
 - [x] Random LeetCode questions with filters
 - [x] Motivation boost via anime girl images
+- [x] Automatic daily data updates with node-cron
 - [ ] Music commands
 
 ## 🙏 Acknowledgements
