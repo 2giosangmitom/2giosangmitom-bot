@@ -21,7 +21,7 @@ Welcome to **2giosangmitom-bot** - a Discord bot for practice LeetCode, get moti
 
 ### Prerequisites
 
-Make sure you have [Node.js](https://nodejs.org/) (v22 or higher) and [pnpm](https://pnpm.io/) installed.
+Make sure you have [Node.js](https://nodejs.org/) (v24 or higher) and [pnpm](https://pnpm.io/) installed.
 
 First, create an `.env` file in the project root:
 
@@ -36,10 +36,9 @@ CLIENT_ID=your-application-id
 | -------------------- | ----------------- | --------------------------------------------- |
 | Install dependencies | `pnpm install`    | Install all project dependencies              |
 | Development mode     | `pnpm run dev`    | Start the bot in watch mode                   |
-| Build project        | `pnpm run build`  | Build for production                          |
+| Start bot            | `pnpm run start`  | Start the bot in production mode              |
 | Run tests            | `pnpm run test`   | Execute all tests once                        |
 | Format code          | `pnpm run format` | Format all source files with Prettier         |
-| Type check           | `pnpm run check`  | Check TypeScript types without emitting files |
 
 ## 🎨 Screenshots
 

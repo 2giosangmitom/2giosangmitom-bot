@@ -1,8 +1,8 @@
-export function randomFrom<T>(arr: readonly T[]): T | undefined {
+export function randomFrom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export function toTitleCase(str: string): string {
+export function toTitleCase(str) {
   return str
     .toLowerCase()
     .split(' ')

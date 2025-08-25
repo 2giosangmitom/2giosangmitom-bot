@@ -5,8 +5,12 @@ import WaifuService from '../services/waifu.js';
 import Fuse from 'fuse.js';
 
 // Load cached data if available
-let cachedData: Awaited<ReturnType<typeof LeetcodeService.loadData>> | null = null;
-let fuseInstance: Fuse<string> | null = null;
+let cachedData = null;
+let fuseInstance = null;
+
+// Function to get cached data (useful for testing)
+export const getCachedData = () => cachedData;
+export const setCachedData = (data) => { cachedData = data; };
 
 process.nextTick(async () => {
   try {
@@ -33,7 +37,7 @@ process.nextTick(async () => {
   }
 });
 
-const leetcode: Command = {
+const leetcode = {
   data: new SlashCommandBuilder()
     .setName('leetcode')
     .setDescription('Get random LeetCode problem')

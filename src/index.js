@@ -7,7 +7,6 @@ import {
   GatewayIntentBits,
   MessageFlags,
   REST,
-  RESTPostAPIApplicationCommandsJSONBody,
   Routes
 } from 'discord.js';
 
@@ -35,9 +34,9 @@ try {
   const rest = new REST().setToken(TOKEN);
   const commandDatas = client.commands.map((cmd) => cmd.data.toJSON());
   consola.info(`Registering ${commandDatas.length} slash command(s)...`);
-  const data = (await rest.put(Routes.applicationCommands(CLIENT_ID), {
+  const data = await rest.put(Routes.applicationCommands(CLIENT_ID), {
     body: commandDatas
-  })) as RESTPostAPIApplicationCommandsJSONBody[];
+  });
   consola.success(`Successfully registered ${data.length} command(s).`);
 } catch (error) {
   consola.error(error);

@@ -1,14 +1,14 @@
-FROM node:22-alpine AS builder
+FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY package.json pnpm-lock.yaml ./
 COPY src/ ./src
 
 # Enable corepack and install pnpm
 RUN corepack enable && corepack install
 
-# Install dependencies and build the application
-RUN pnpm install && pnpm build
+# Install dependencies
+RUN pnpm install
 
-CMD [ "node", "dist/index.js" ]
+CMD [ "node", "src/index.js" ]

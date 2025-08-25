@@ -2,34 +2,20 @@
   "name": "2giosangmitom-bot",
   "version": "2.0.0",
   "type": "module",
-  "targets": {
-    "bot": {
-      "source": "src/**/*.ts",
-      "engines": {
-        "node": ">= 24"
-      },
-      "outputFormat": "esmodule"
-    }
-  },
   "scripts": {
-    "dev": "tsx --env-file=.env --watch src/index.ts",
-    "test": "tsx --test",
-    "build": "parcel build",
-    "check": "tsc --noEmit",
+    "dev": "node --env-file=.env --watch src/index.js",
+    "test": "node --test tests/**/*.test.js",
+    "start": "node --env-file=.env src/index.js",
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@types/node": "^24.3.0",
-    "parcel": "^2.15.4",
-    "prettier": "^3.6.2",
-    "tsx": "^4.20.4",
-    "typescript": "^5.9.2"
+    "prettier": "^3.6.2"
   },
   "dependencies": {
     "consola": "^3.4.2",
-    "discord.js": "^14.21.0",
+    "discord.js": "^14.22.1",
     "fuse.js": "^7.1.0",
-    "zod": "^4.0.17"
+    "zod": "^4.1.1"
   },
-  "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748"
+  "packageManager": "pnpm@10.15.0+sha512.486ebc259d3e999a4e8691ce03b5cac4a71cbeca39372a9b762cb500cfdf0873e2cb16abe3d951b1ee2cf012503f027b98b6584e4df22524e0c7450d9ec7aa7b"
 }

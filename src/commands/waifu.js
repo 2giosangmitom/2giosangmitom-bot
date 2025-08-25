@@ -1,7 +1,7 @@
 import { EmbedBuilder, SlashCommandBuilder, italic } from 'discord.js';
 import WaifuService from '../services/waifu.js';
 
-const waifu: Command = {
+const waifu = {
   data: new SlashCommandBuilder()
     .setName('waifu')
     .setDescription('Get a random cute anime girl image to boost your motivation 💖')
