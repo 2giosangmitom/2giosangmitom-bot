@@ -45,7 +45,7 @@ try {
 // Handle ready event
 client.once(Events.ClientReady, (readyClient) => {
   consola.success(`Logged in as ${readyClient.user.tag}`);
-  readyClient.user.setActivity('Truyen oi anh yeu em ❤️', {
+  readyClient.user.setActivity('Oi doi oi', {
     type: ActivityType.Custom
   });
 });
