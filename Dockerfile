@@ -1,14 +1,33 @@
-FROM node:24-alpine
+# Stage 1: Build
+FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
-COPY src/ ./src
-
-# Enable corepack and install pnpm
-RUN corepack enable && corepack install
+# Copy package files
+COPY package.json bun.lock* ./
 
 # Install dependencies
-RUN pnpm install
+RUN bun install --frozen-lockfile
 
-CMD [ "node", "src/index.js" ]
+# Copy source code
+COPY . .
+
+# Bundle the application
+RUN bun run build
+
+# Stage 2: Production
+FROM oven/bun:1-slim AS runner
+
+WORKDIR /app
+
+# Copy bundled files from builder
+COPY --from=builder /app/dist ./dist
+
+# Create cache directory
+RUN mkdir -p /app/.cache
+
+# Set environment
+ENV NODE_ENV=production
+
+# Run the bot
+CMD ["bun", "run", "dist/index.js"]

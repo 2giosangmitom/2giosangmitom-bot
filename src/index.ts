@@ -7,7 +7,10 @@ import {
   GatewayIntentBits,
   MessageFlags,
   REST,
-  Routes
+  Routes,
+  type ChatInputCommandInteraction,
+  type AutocompleteInteraction,
+  type SlashCommandBuilder
 } from 'discord.js';
 
 const { TOKEN, CLIENT_ID } = process.env;
@@ -16,17 +19,29 @@ if (!TOKEN || !CLIENT_ID) {
   process.exit(1);
 }
 
+interface Command {
+  data: SlashCommandBuilder;
+  execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+  autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
+}
+
+// Extend Client to include commands collection
+interface ExtendedClient extends Client {
+  commands: Collection<string, Command>;
+}
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
-});
+}) as ExtendedClient;
 client.commands = new Collection();
 
 // Load slash commands
-const commands = ['waifu.js', 'leetcode.js'];
-for (const file of commands) {
+const commandModules = ['waifu', 'leetcode'];
+for (const file of commandModules) {
   const mod = await import(`./commands/${file}`);
-  client.commands.set(mod.default.data.name, mod.default);
-  consola.success(`Loaded command: '${mod.default.data.name}' from 'commands/${file}'`);
+  const command = mod.default as Command;
+  client.commands.set(command.data.name, command);
+  consola.success(`Loaded command: '${command.data.name}' from 'commands/${file}.ts'`);
 }
 
 // Register slash commands
@@ -34,9 +49,9 @@ try {
   const rest = new REST().setToken(TOKEN);
   const commandDatas = client.commands.map((cmd) => cmd.data.toJSON());
   consola.info(`Registering ${commandDatas.length} slash command(s)...`);
-  const data = await rest.put(Routes.applicationCommands(CLIENT_ID), {
+  const data = (await rest.put(Routes.applicationCommands(CLIENT_ID), {
     body: commandDatas
-  });
+  })) as unknown[];
   consola.success(`Successfully registered ${data.length} command(s).`);
 } catch (error) {
   consola.error(error);

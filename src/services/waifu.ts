@@ -1,9 +1,11 @@
-import { randomFrom } from '../lib/utils.js';
+import { randomFrom } from '../lib/utils';
 import { inlineCode } from 'discord.js';
 import z from 'zod';
 
 // Allowed categories from waifu.pics
-export const categories = ['waifu', 'hug', 'kiss', 'happy', 'handhold', 'bite', 'slap'];
+export const categories = ['waifu', 'hug', 'kiss', 'happy', 'handhold', 'bite', 'slap'] as const;
+
+export type WaifuCategory = (typeof categories)[number];
 
 // Titles for the embed message
 export const titles = [
@@ -37,18 +39,24 @@ export const titles = [
   "Waifu's Smile Restores 100 HP! 💚",
   'Plot Armor Activated! 🛡️',
   "You're Destined for Greatness! 🌠"
-];
+] as const;
 
-export async function getImage(category) {
-  category = category ?? randomFrom(categories);
+export interface WaifuImage {
+  url: string;
+  category: WaifuCategory;
+  title: string;
+}
+
+export async function getImage(category?: WaifuCategory): Promise<WaifuImage> {
+  const selectedCategory = category ?? randomFrom([...categories]);
 
   // Reject if the provided category is not valid
-  if (!categories.includes(category)) {
-    throw new Error(`The ${inlineCode(category)} category is not valid`);
+  if (!categories.includes(selectedCategory)) {
+    throw new Error(`The ${inlineCode(selectedCategory)} category is not valid`);
   }
 
   // Fetch the image
-  const res = await fetch(`https://api.waifu.pics/sfw/${category}`);
+  const res = await fetch(`https://api.waifu.pics/sfw/${selectedCategory}`);
 
   if (!res.ok) {
     throw new Error(
@@ -70,8 +78,8 @@ export async function getImage(category) {
 
   return {
     url: result.data.url,
-    category,
-    title: randomFrom(titles)
+    category: selectedCategory,
+    title: randomFrom([...titles])
   };
 }
 

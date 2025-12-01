@@ -1,7 +1,7 @@
 import path from 'node:path';
 import z from 'zod';
 import fs from 'node:fs';
-import { randomFrom, toTitleCase } from '../lib/utils.js';
+import { randomFrom, toTitleCase } from '../lib/utils';
 
 const query = String.raw`query problemsetQuestionListV2($filters: QuestionFilterInput, $limit: Int, $skip: Int) {
   problemsetQuestionListV2(
@@ -37,10 +37,38 @@ const graphqlPostPayload = JSON.stringify({
   }
 });
 
-export const difficulties = ['Easy', 'Medium', 'Hard'];
+export const difficulties = ['Easy', 'Medium', 'Hard'] as const;
+export type Difficulty = (typeof difficulties)[number];
+
 export const cachePath = path.join(process.cwd(), '.cache', 'data.json');
 
-export async function downloadData() {
+export interface LeetCodeQuestion {
+  id: number;
+  title: string;
+  difficulty: Difficulty;
+  isPaid: boolean;
+  acRate: number;
+  url: string;
+  topics: string[];
+}
+
+export interface LeetCodeData {
+  questions: LeetCodeQuestion[];
+  topics: string[];
+}
+
+interface RawQuestion {
+  id: number;
+  titleSlug: string;
+  title: string;
+  questionFrontendId: string;
+  paidOnly: boolean;
+  difficulty: string;
+  topicTags: { name: string; slug: string }[];
+  acRate: number;
+}
+
+export async function downloadData(): Promise<RawQuestion[]> {
   const response = await fetch('https://leetcode.com/graphql', {
     method: 'POST',
     headers: {
@@ -63,7 +91,7 @@ export async function downloadData() {
             title: z.string(),
             questionFrontendId: z.string(),
             paidOnly: z.boolean(),
-            difficulty: z.enum(difficulties.map((d) => d.toUpperCase())),
+            difficulty: z.enum(difficulties.map((d) => d.toUpperCase()) as [string, ...string[]]),
             topicTags: z.array(
               z.object({
                 name: z.string(),
@@ -86,7 +114,7 @@ export async function downloadData() {
   return result.data.data.problemsetQuestionListV2.questions;
 }
 
-export async function saveData(data) {
+export async function saveData(data: RawQuestion[]): Promise<void> {
   const dir = path.dirname(cachePath);
   await fs.promises.mkdir(dir, { recursive: true });
 
@@ -94,7 +122,7 @@ export async function saveData(data) {
     .map((q) => ({
       id: q.id,
       title: q.title,
-      difficulty: toTitleCase(q.difficulty),
+      difficulty: toTitleCase(q.difficulty) as Difficulty,
       isPaid: q.paidOnly,
       acRate: q.acRate,
       url: `https://leetcode.com/problems/${q.titleSlug}`,
@@ -102,7 +130,7 @@ export async function saveData(data) {
     }))
     .filter((q) => !q.isPaid);
 
-  const topicsSet = new Set();
+  const topicsSet = new Set<string>();
   transformedData.forEach((q) => {
     q.topics.forEach((topic) => topicsSet.add(topic));
   });
@@ -121,7 +149,7 @@ export async function saveData(data) {
   );
 }
 
-export async function loadData() {
+export async function loadData(): Promise<LeetCodeData> {
   if (!fs.existsSync(cachePath)) {
     throw new Error('Cache is not exists');
   }
@@ -150,7 +178,11 @@ export async function loadData() {
   return result.data;
 }
 
-export async function getRandomProblem(data, difficulty, topic) {
+export async function getRandomProblem(
+  data: LeetCodeData,
+  difficulty?: string,
+  topic?: string
+): Promise<LeetCodeQuestion> {
   const filteredData = data.questions.filter((q) => {
     // Match difficulty
     if (difficulty && q.difficulty.toLowerCase() !== difficulty.toLowerCase()) return false;

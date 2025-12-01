@@ -1,22 +1,29 @@
-import { EmbedBuilder, italic, MessageFlags, SlashCommandBuilder } from 'discord.js';
-import LeetcodeService from '../services/leetcode.js';
+import {
+  AutocompleteInteraction,
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  italic,
+  MessageFlags,
+  SlashCommandBuilder
+} from 'discord.js';
+import LeetcodeService, { type LeetCodeData } from '../services/leetcode';
 import consola from 'consola';
-import WaifuService from '../services/waifu.js';
+import WaifuService from '../services/waifu';
 import Fuse from 'fuse.js';
 import cron from 'node-cron';
 
 // Load cached data if available
-let cachedData = null;
-let fuseInstance = null;
+let cachedData: LeetCodeData | null = null;
+let fuseInstance: Fuse<string> | null = null;
 
 // Function to get cached data (useful for testing)
-export const getCachedData = () => cachedData;
-export const setCachedData = (data) => {
+export const getCachedData = (): LeetCodeData | null => cachedData;
+export const setCachedData = (data: LeetCodeData | null): void => {
   cachedData = data;
 };
 
 // Function to download and update LeetCode data
-export async function updateLeetCodeData() {
+export async function updateLeetCodeData(): Promise<void> {
   try {
     consola.info('Starting scheduled LeetCode data update...');
     const data = await LeetcodeService.downloadData();
@@ -29,7 +36,7 @@ export async function updateLeetCodeData() {
 }
 
 // Only load data automatically if not in test environment
-if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'test') {
+if (!process.env['NODE_ENV'] || process.env['NODE_ENV'] !== 'test') {
   // Initial data loading
   process.nextTick(async () => {
     try {
@@ -81,7 +88,7 @@ const leetcode = {
     .addStringOption((option) =>
       option.setName('topic').setDescription('Set topic of the problem').setAutocomplete(true)
     ),
-  async execute(interaction) {
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!cachedData) {
       await interaction.reply({
         content: 'No LeetCode data available. Please try again later.',
@@ -150,7 +157,7 @@ const leetcode = {
       });
     }
   },
-  async autocomplete(interaction) {
+  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
     if (!cachedData) {
       await interaction.respond([]);
       return;

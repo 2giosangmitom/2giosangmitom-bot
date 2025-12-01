@@ -1,5 +1,5 @@
-import { EmbedBuilder, SlashCommandBuilder, italic } from 'discord.js';
-import WaifuService from '../services/waifu.js';
+import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, italic } from 'discord.js';
+import WaifuService, { type WaifuCategory } from '../services/waifu';
 
 const waifu = {
   data: new SlashCommandBuilder()
@@ -16,10 +16,10 @@ const waifu = {
           }))
         )
     ),
-  async execute(interaction) {
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
 
-    const categoryParam = interaction.options.getString('category') ?? undefined;
+    const categoryParam = interaction.options.getString('category') as WaifuCategory | undefined;
 
     const { url, category, title } = await WaifuService.getImage(categoryParam);
 

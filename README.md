@@ -7,9 +7,9 @@
 ![Repo size](https://img.shields.io/github/repo-size/2giosangmitom/2giosangmitom-bot?color=%23DDB6F2&label=SIZE&logo=codesandbox&style=for-the-badge&logoColor=D9E0EE&labelColor=302D41)
 ![LICENSE](https://img.shields.io/github/license/2giosangmitom/2giosangmitom-bot?style=for-the-badge&logo=alpinedotjs&color=ee999f&logoColor=D9E0EE&labelColor=302D41)
 
-> _"Solve problems. Stay motivated. Maybe vibe a little too ✨."_
+> _"Solve problems. Stay motivated ✨."_
 
-Welcome to **2giosangmitom-bot** - a Discord bot for practice LeetCode, get motivational boosts, and soon... listen to your favorite songs! 🎧
+Welcome to **2giosangmitom-bot** - a Discord bot for practice LeetCode, and get motivational boosts.
 
 ## ✨ Features
 
@@ -22,7 +22,7 @@ Welcome to **2giosangmitom-bot** - a Discord bot for practice LeetCode, get moti
 
 ### Prerequisites
 
-Make sure you have [Node.js](https://nodejs.org/) (v24 or higher) and [pnpm](https://pnpm.io/) installed.
+Make sure you have [Bun](https://bun.sh/) (v1.0 or higher) installed.
 
 First, create an `.env` file in the project root:
 
@@ -33,13 +33,43 @@ CLIENT_ID=your-application-id
 
 ### 🖋 Commands
 
-| Task                 | Command           | Description                           |
-| -------------------- | ----------------- | ------------------------------------- |
-| Install dependencies | `pnpm install`    | Install all project dependencies      |
-| Development mode     | `pnpm run dev`    | Start the bot in watch mode           |
-| Start bot            | `pnpm run start`  | Start the bot in production mode      |
-| Run tests            | `pnpm run test`   | Execute all tests once                |
-| Format code          | `pnpm run format` | Format all source files with Prettier |
+| Task                 | Command             | Description                           |
+| -------------------- | ------------------- | ------------------------------------- |
+| Install dependencies | `bun install`       | Install all project dependencies      |
+| Development mode     | `bun run dev`       | Start the bot in watch mode           |
+| Start bot            | `bun run start`     | Start the bot in production mode      |
+| Build                | `bun run build`     | Bundle the application for production |
+| Type check           | `bun run typecheck` | Run TypeScript type checking          |
+| Format code          | `bun run format`    | Format all source files with Prettier |
+| Lint code            | `bun run lint`      | Lint all source files with ESLint     |
+
+### 🐳 Docker
+
+You can run the bot using Docker:
+
+```bash
+# Build the Docker image
+docker build -t 2giosangmitom-bot .
+
+# Run the container
+docker run -d \
+  -e TOKEN=your-bot-token \
+  -e CLIENT_ID=your-application-id \
+  --name 2giosangmitom-bot \
+  2giosangmitom-bot
+```
+
+### 📦 Building for Production
+
+The bot can be bundled for production using Bun:
+
+```bash
+# Bundle the application
+bun run build
+
+# Run the bundled application
+bun run dist/index.js
+```
 
 ## 🎨 Screenshots
 
@@ -51,13 +81,6 @@ When encounter a hard problem, your waifu will boost your energy.
 
 Feel free to open an issue or submit a pull request.
 
-## 🗺 Roadmap
-
-- [x] Random LeetCode questions with filters
-- [x] Motivation boost via anime girl images
-- [x] Automatic daily data updates with node-cron
-- [ ] Music commands
-
 ## 🙏 Acknowledgements
 
 Thanks to all the amazing contributors 💛
@@ -66,7 +89,8 @@ Thanks to all the amazing contributors 💛
 
 Special thanks to all the libraries and APIs that make this bot possible, especially:
 
-- [Discord.js](https://discord.js.org/) a high-quality Discord library
-- [waifu.pics](https://waifu.pics/) for the cute anime images that keep us motivated!
+- [Bun](https://bun.sh/) - a fast all-in-one JavaScript runtime
+- [Discord.js](https://discord.js.org/) - a high-quality Discord library
+- [waifu.pics](https://waifu.pics/) - for the cute anime images that keep us motivated!
 
 _Made with 💻 + 🍜 at 2AM_
