@@ -7,7 +7,7 @@ import {
 } from 'discord.js';
 import WaifuService, { type WaifuCategory } from '../services/waifu';
 import { createLogger } from '../lib/logger';
-import { getErrorMessage, isAppError } from '../lib/errors';
+import { isAppError } from '../lib/errors';
 
 const logger = createLogger('Command:Waifu');
 
