@@ -139,7 +139,7 @@ Thanks to all the amazing contributors 💛
 
 Special thanks to the awesome libraries and APIs that power this bot:
 
-|                                          |                                         |
+| Name                                     | Description                             |
 | ---------------------------------------- | --------------------------------------- |
 | 🥟 [Bun](https://bun.sh/)                | A blazingly fast JavaScript runtime     |
 | 🤖 [Discord.js](https://discord.js.org/) | The best Discord library for Node.js    |
