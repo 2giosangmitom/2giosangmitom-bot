@@ -1,7 +1,14 @@
 import path from 'node:path';
-import z from 'zod';
+import { z } from 'zod';
 import fs from 'node:fs';
 import { randomFrom, toTitleCase } from '../lib/utils';
+import { createLogger } from '../lib/logger';
+import { ExternalServiceError, NotFoundError } from '../lib/errors';
+
+const logger = createLogger('LeetCodeService');
+
+const LEETCODE_GRAPHQL_URL = 'https://leetcode.com/graphql';
+const LEETCODE_PROBLEM_URL = 'https://leetcode.com/problems';
 
 const query = String.raw`query problemsetQuestionListV2($filters: QuestionFilterInput, $limit: Int, $skip: Int) {
   problemsetQuestionListV2(
@@ -68,8 +75,50 @@ interface RawQuestion {
   acRate: number;
 }
 
+const rawQuestionSchema = z.object({
+  data: z.object({
+    problemsetQuestionListV2: z.object({
+      questions: z.array(
+        z.object({
+          id: z.number(),
+          titleSlug: z.string(),
+          title: z.string(),
+          questionFrontendId: z.string(),
+          paidOnly: z.boolean(),
+          difficulty: z.enum(difficulties.map((d) => d.toUpperCase()) as [string, ...string[]]),
+          topicTags: z.array(
+            z.object({
+              name: z.string(),
+              slug: z.string()
+            })
+          ),
+          acRate: z.number()
+        })
+      ),
+      totalLength: z.number()
+    })
+  })
+});
+
+const cachedDataSchema = z.object({
+  questions: z.array(
+    z.object({
+      id: z.number(),
+      title: z.string(),
+      difficulty: z.enum(difficulties),
+      isPaid: z.boolean(),
+      acRate: z.number(),
+      url: z.url(),
+      topics: z.array(z.string())
+    })
+  ),
+  topics: z.array(z.string())
+});
+
 export async function downloadData(): Promise<RawQuestion[]> {
-  const response = await fetch('https://leetcode.com/graphql', {
+  logger.info('Downloading LeetCode problem data...');
+
+  const response = await fetch(LEETCODE_GRAPHQL_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -78,40 +127,22 @@ export async function downloadData(): Promise<RawQuestion[]> {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch data: ${response.statusText}`);
+    throw new ExternalServiceError('LeetCode', `GraphQL request failed: ${response.statusText}`, {
+      statusCode: response.status
+    });
   }
 
-  const schema = z.object({
-    data: z.object({
-      problemsetQuestionListV2: z.object({
-        questions: z.array(
-          z.object({
-            id: z.number(),
-            titleSlug: z.string(),
-            title: z.string(),
-            questionFrontendId: z.string(),
-            paidOnly: z.boolean(),
-            difficulty: z.enum(difficulties.map((d) => d.toUpperCase()) as [string, ...string[]]),
-            topicTags: z.array(
-              z.object({
-                name: z.string(),
-                slug: z.string()
-              })
-            ),
-            acRate: z.number()
-          })
-        ),
-        totalLength: z.number()
-      })
-    })
-  });
-
-  const result = schema.safeParse(await response.json());
+  const result = rawQuestionSchema.safeParse(await response.json());
   if (!result.success) {
-    throw new Error(`Invalid data format: ${z.prettifyError(result.error)}`);
+    throw new ExternalServiceError('LeetCode', 'Invalid response format from GraphQL API', {
+      context: { errors: result.error.issues }
+    });
   }
 
-  return result.data.data.problemsetQuestionListV2.questions;
+  const questions = result.data.data.problemsetQuestionListV2.questions;
+  logger.info('Downloaded LeetCode data', { questionCount: questions.length });
+
+  return questions;
 }
 
 export async function saveData(data: RawQuestion[]): Promise<void> {
@@ -125,7 +156,7 @@ export async function saveData(data: RawQuestion[]): Promise<void> {
       difficulty: toTitleCase(q.difficulty) as Difficulty,
       isPaid: q.paidOnly,
       acRate: q.acRate,
-      url: `https://leetcode.com/problems/${q.titleSlug}`,
+      url: `${LEETCODE_PROBLEM_URL}/${q.titleSlug}`,
       topics: q.topicTags.map((t) => t.name)
     }))
     .filter((q) => !q.isPaid);
@@ -135,45 +166,40 @@ export async function saveData(data: RawQuestion[]): Promise<void> {
     q.topics.forEach((topic) => topicsSet.add(topic));
   });
 
-  await fs.promises.writeFile(
-    cachePath,
-    JSON.stringify(
-      {
-        questions: transformedData,
-        topics: Array.from(topicsSet)
-      },
-      null,
-      2
-    ),
-    'utf-8'
-  );
+  const cacheData = {
+    questions: transformedData,
+    topics: Array.from(topicsSet).sort()
+  };
+
+  await fs.promises.writeFile(cachePath, JSON.stringify(cacheData, null, 2), 'utf-8');
+
+  logger.info('Saved LeetCode data to cache', {
+    path: cachePath,
+    questionCount: transformedData.length,
+    topicCount: cacheData.topics.length
+  });
 }
 
 export async function loadData(): Promise<LeetCodeData> {
   if (!fs.existsSync(cachePath)) {
-    throw new Error('Cache is not exists');
+    throw new NotFoundError('LeetCode cache', { path: cachePath });
   }
+
+  logger.debug('Loading cached LeetCode data', { path: cachePath });
 
   const data = await fs.promises.readFile(cachePath, 'utf-8');
-  const schema = z.object({
-    questions: z.array(
-      z.object({
-        id: z.number(),
-        title: z.string(),
-        difficulty: z.enum(difficulties),
-        isPaid: z.boolean(),
-        acRate: z.number(),
-        url: z.url(),
-        topics: z.array(z.string())
-      })
-    ),
-    topics: z.array(z.string())
-  });
+  const result = cachedDataSchema.safeParse(JSON.parse(data));
 
-  const result = schema.safeParse(JSON.parse(data));
   if (!result.success) {
-    throw new Error(`Invalid data format: ${z.prettifyError(result.error)}`);
+    throw new ExternalServiceError('LeetCode', 'Invalid cache data format', {
+      context: { errors: result.error.issues }
+    });
   }
+
+  logger.debug('Loaded cached data', {
+    questionCount: result.data.questions.length,
+    topicCount: result.data.topics.length
+  });
 
   return result.data;
 }
@@ -184,18 +210,31 @@ export async function getRandomProblem(
   topic?: string
 ): Promise<LeetCodeQuestion> {
   const filteredData = data.questions.filter((q) => {
-    // Match difficulty
-    if (difficulty && q.difficulty.toLowerCase() !== difficulty.toLowerCase()) return false;
-    // Match topic
-    if (topic && !q.topics.includes(topic)) return false;
+    if (difficulty && q.difficulty.toLowerCase() !== difficulty.toLowerCase()) {
+      return false;
+    }
+    if (topic && !q.topics.includes(topic)) {
+      return false;
+    }
     return true;
   });
 
   if (filteredData.length === 0) {
-    throw new Error('No problems found matching the criteria.');
+    throw new NotFoundError('LeetCode problem', {
+      difficulty,
+      topic,
+      message: 'No problems found matching the criteria'
+    });
   }
 
-  return randomFrom(filteredData);
+  const problem = randomFrom(filteredData);
+  logger.debug('Selected random problem', {
+    id: problem.id,
+    title: problem.title,
+    difficulty: problem.difficulty
+  });
+
+  return problem;
 }
 
 const LeetcodeService = {

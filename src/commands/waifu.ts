@@ -1,5 +1,15 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, italic } from 'discord.js';
+import {
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  SlashCommandBuilder,
+  italic,
+  MessageFlags
+} from 'discord.js';
 import WaifuService, { type WaifuCategory } from '../services/waifu';
+import { createLogger } from '../lib/logger';
+import { getErrorMessage, isAppError } from '../lib/errors';
+
+const logger = createLogger('Command:Waifu');
 
 const waifu = {
   data: new SlashCommandBuilder()
@@ -16,22 +26,44 @@ const waifu = {
           }))
         )
     ),
+
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
 
     const categoryParam = interaction.options.getString('category') as WaifuCategory | undefined;
 
-    const { url, category, title } = await WaifuService.getImage(categoryParam);
+    try {
+      const { url, category, title } = await WaifuService.getImage(categoryParam);
 
-    const waifuEmbed = new EmbedBuilder()
-      .setColor('LuminousVividPink')
-      .setTitle(title)
-      .setDescription(italic(`Category: ${category}`))
-      .setImage(url)
-      .setFooter({ text: 'Powered by waifu.pics' })
-      .setTimestamp();
+      const waifuEmbed = new EmbedBuilder()
+        .setColor('LuminousVividPink')
+        .setTitle(title)
+        .setDescription(italic(`Category: ${category}`))
+        .setImage(url)
+        .setFooter({ text: 'Powered by waifu.pics' })
+        .setTimestamp();
 
-    await interaction.followUp({ embeds: [waifuEmbed] });
+      await interaction.followUp({ embeds: [waifuEmbed] });
+
+      logger.info('Waifu image sent', {
+        userId: interaction.user.id,
+        category
+      });
+    } catch (error) {
+      logger.error('Failed to fetch waifu image', error, {
+        userId: interaction.user.id,
+        category: categoryParam
+      });
+
+      const message = isAppError(error)
+        ? error.message
+        : 'Failed to fetch waifu image. Please try again later.';
+
+      await interaction.followUp({
+        content: message,
+        flags: MessageFlags.Ephemeral
+      });
+    }
   }
 };
 

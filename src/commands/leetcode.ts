@@ -7,67 +7,79 @@ import {
   SlashCommandBuilder
 } from 'discord.js';
 import LeetcodeService, { type LeetCodeData } from '../services/leetcode';
-import consola from 'consola';
 import WaifuService from '../services/waifu';
 import Fuse from 'fuse.js';
 import cron from 'node-cron';
+import { createLogger } from '../lib/logger';
+import { isTest } from '../lib/env';
+import { getErrorMessage, isAppError, NotFoundError } from '../lib/errors';
 
-// Load cached data if available
+const logger = createLogger('Command:LeetCode');
+
+// State management
 let cachedData: LeetCodeData | null = null;
 let fuseInstance: Fuse<string> | null = null;
 
-// Function to get cached data (useful for testing)
+// Exported for testing
 export const getCachedData = (): LeetCodeData | null => cachedData;
 export const setCachedData = (data: LeetCodeData | null): void => {
   cachedData = data;
+  fuseInstance = null; // Reset fuse when data changes
 };
 
-// Function to download and update LeetCode data
-export async function updateLeetCodeData(): Promise<void> {
+async function initializeCache(): Promise<void> {
   try {
-    consola.info('Starting scheduled LeetCode data update...');
-    const data = await LeetcodeService.downloadData();
-    await LeetcodeService.saveData(data);
     cachedData = await LeetcodeService.loadData();
-    consola.success('Successfully updated LeetCode data cache.');
+    logger.info('Loaded cached LeetCode data');
   } catch (error) {
-    consola.error('Failed to update LeetCode data:', error);
+    if (error instanceof NotFoundError) {
+      logger.warn('No cache found, downloading fresh data...');
+    } else {
+      logger.warn('Failed to load cache, downloading fresh data...', {
+        error: getErrorMessage(error)
+      });
+    }
+
+    try {
+      const data = await LeetcodeService.downloadData();
+      await LeetcodeService.saveData(data);
+      cachedData = await LeetcodeService.loadData();
+      logger.info('Downloaded and cached fresh LeetCode data');
+    } catch (downloadError) {
+      logger.error('Failed to download LeetCode data', downloadError);
+    }
   }
 }
 
-// Only load data automatically if not in test environment
-if (!process.env['NODE_ENV'] || process.env['NODE_ENV'] !== 'test') {
-  // Initial data loading
-  process.nextTick(async () => {
-    try {
-      cachedData = await LeetcodeService.loadData();
-      consola.success('Loaded cached LeetCode data successfully.');
-    } catch (error) {
-      if (error instanceof Error) {
-        consola.warn('Failed to load cached LeetCode data:', error.message);
-        consola.info('Downloading fresh data from LeetCode...');
-      }
+async function updateLeetCodeData(): Promise<void> {
+  logger.info('Starting scheduled LeetCode data update...');
+  try {
+    const data = await LeetcodeService.downloadData();
+    await LeetcodeService.saveData(data);
+    cachedData = await LeetcodeService.loadData();
+    fuseInstance = null; // Reset fuse to rebuild with new data
+    logger.info('Successfully updated LeetCode data cache');
+  } catch (error) {
+    logger.error('Failed to update LeetCode data', error);
+  }
+}
 
-      try {
-        const data = await LeetcodeService.downloadData();
-        await LeetcodeService.saveData(data);
-        consola.success('Downloaded and saved fresh LeetCode data successfully.');
+// Initialize cache and schedule updates (skip in test environment)
+if (!isTest) {
+  process.nextTick(initializeCache);
 
-        // Reload data again
-        cachedData = await LeetcodeService.loadData();
-      } catch (downloadError) {
-        if (error instanceof Error) {
-          consola.error('Failed to download LeetCode data:', downloadError);
-        }
-      }
-    }
-  });
+  cron.schedule('0 2 * * *', updateLeetCodeData, { timezone: 'UTC' });
+  logger.info('Scheduled daily LeetCode data updates at 2:00 AM UTC');
+}
 
-  // Schedule daily data updates at 2:00 AM
-  cron.schedule('0 2 * * *', updateLeetCodeData, {
-    timezone: 'UTC'
-  });
-  consola.info('Scheduled daily LeetCode data updates at 2:00 AM UTC');
+function getFuseInstance(topics: string[]): Fuse<string> {
+  if (!fuseInstance) {
+    fuseInstance = new Fuse(topics, {
+      includeScore: true,
+      threshold: 0.3
+    });
+  }
+  return fuseInstance;
 }
 
 const leetcode = {
@@ -88,10 +100,11 @@ const leetcode = {
     .addStringOption((option) =>
       option.setName('topic').setDescription('Set topic of the problem').setAutocomplete(true)
     ),
+
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!cachedData) {
       await interaction.reply({
-        content: 'No LeetCode data available. Please try again later.',
+        content: 'LeetCode data is not available yet. Please try again in a moment.',
         flags: MessageFlags.Ephemeral
       });
       return;
@@ -106,7 +119,7 @@ const leetcode = {
       const problem = await LeetcodeService.getRandomProblem(cachedData, difficulty, topic);
 
       const embed = new EmbedBuilder()
-        .setTitle(`${problem.title}`)
+        .setTitle(problem.title)
         .setURL(problem.url)
         .setColor(
           problem.difficulty === 'Easy'
@@ -116,7 +129,7 @@ const leetcode = {
               : 'Red'
         )
         .setFooter({
-          text: `Powered by LeetCode`,
+          text: 'Powered by LeetCode',
           iconURL: 'https://assets.leetcode.com/static_assets/public/icons/favicon-160x160.png'
         })
         .setTimestamp()
@@ -134,29 +147,52 @@ const leetcode = {
 
       await interaction.followUp({ embeds: [embed] });
 
-      if (problem.difficulty === 'Hard') {
-        const { url, category, title } = await WaifuService.getImage();
-        const motivationEmbed = new EmbedBuilder()
-          .setColor('LuminousVividPink')
-          .setTitle(title)
-          .setDescription(italic(`Category: ${category}`))
-          .setImage(url)
-          .setFooter({ text: 'Powered by waifu.pics' })
-          .setTimestamp();
+      logger.info('Sent LeetCode problem', {
+        userId: interaction.user.id,
+        problemId: problem.id,
+        difficulty: problem.difficulty
+      });
 
-        await interaction.followUp({
-          content: 'Motivation for solving hard problems!',
-          embeds: [motivationEmbed]
-        });
+      // Send motivation for hard problems
+      if (problem.difficulty === 'Hard') {
+        try {
+          const { url, category, title } = await WaifuService.getImage();
+          const motivationEmbed = new EmbedBuilder()
+            .setColor('LuminousVividPink')
+            .setTitle(title)
+            .setDescription(italic(`Category: ${category}`))
+            .setImage(url)
+            .setFooter({ text: 'Powered by waifu.pics' })
+            .setTimestamp();
+
+          await interaction.followUp({
+            content: 'Motivation for solving hard problems!',
+            embeds: [motivationEmbed]
+          });
+        } catch (waifuError) {
+          logger.warn('Failed to send motivation image', {
+            error: getErrorMessage(waifuError)
+          });
+        }
       }
     } catch (error) {
-      consola.error('Error fetching random problem:', error);
+      logger.error('Failed to fetch random problem', error, {
+        userId: interaction.user.id,
+        difficulty,
+        topic
+      });
+
+      const message = isAppError(error)
+        ? error.message
+        : 'Failed to fetch a random LeetCode problem.';
+
       await interaction.followUp({
-        content: 'Failed to fetch a random LeetCode problem.',
+        content: message,
         flags: MessageFlags.Ephemeral
       });
     }
   },
+
   async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
     if (!cachedData) {
       await interaction.respond([]);
@@ -166,29 +202,20 @@ const leetcode = {
     const focusedValue = interaction.options.getFocused();
     const topics = cachedData.topics;
 
-    // If no search term, return first 25 topics
-    if (!focusedValue || !focusedValue.trim()) {
-      const topicsToShow = topics.slice(0, 25);
-      await interaction.respond(topicsToShow.map((topic) => ({ name: topic, value: topic })));
-      return;
-    }
-
-    // Create Fuse instance for search if we have a search term
-    if (!fuseInstance && topics && topics.length > 0) {
-      fuseInstance = new Fuse(topics, {
-        includeScore: true,
-        threshold: 0.3
-      });
-    }
-
-    if (fuseInstance) {
-      const result = fuseInstance.search(focusedValue, { limit: 25 });
-      if (result && Array.isArray(result)) {
-        await interaction.respond(result.map((res) => ({ name: res.item, value: res.item })));
-      } else {
-        await interaction.respond([]);
+    try {
+      if (!focusedValue.trim()) {
+        // Return first 25 topics when no search term
+        const topicsToShow = topics.slice(0, 25);
+        await interaction.respond(topicsToShow.map((topic) => ({ name: topic, value: topic })));
+        return;
       }
-    } else {
+
+      const fuse = getFuseInstance(topics);
+      const results = fuse.search(focusedValue, { limit: 25 });
+
+      await interaction.respond(results.map((res) => ({ name: res.item, value: res.item })));
+    } catch (error) {
+      logger.error('Autocomplete error', error);
       await interaction.respond([]);
     }
   }

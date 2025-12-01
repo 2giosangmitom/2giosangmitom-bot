@@ -1,6 +1,9 @@
 import { randomFrom } from '../lib/utils';
-import { inlineCode } from 'discord.js';
-import z from 'zod';
+import { z } from 'zod';
+import { createLogger } from '../lib/logger';
+import { ExternalServiceError, ValidationError } from '../lib/errors';
+
+const logger = createLogger('WaifuService');
 
 // Allowed categories from waifu.pics
 export const categories = ['waifu', 'hug', 'kiss', 'happy', 'handhold', 'bite', 'slap'] as const;
@@ -47,34 +50,46 @@ export interface WaifuImage {
   title: string;
 }
 
+const responseSchema = z.object({
+  url: z.url()
+});
+
+export function isValidCategory(category: string): category is WaifuCategory {
+  return categories.includes(category as WaifuCategory);
+}
+
 export async function getImage(category?: WaifuCategory): Promise<WaifuImage> {
   const selectedCategory = category ?? randomFrom([...categories]);
 
   // Reject if the provided category is not valid
-  if (!categories.includes(selectedCategory)) {
-    throw new Error(`The ${inlineCode(selectedCategory)} category is not valid`);
+  if (!isValidCategory(selectedCategory)) {
+    throw new ValidationError(`Invalid category: ${selectedCategory}`, {
+      category: selectedCategory,
+      validCategories: [...categories]
+    });
   }
 
-  // Fetch the image
+  logger.debug('Fetching image', { category: selectedCategory });
+
   const res = await fetch(`https://api.waifu.pics/sfw/${selectedCategory}`);
 
   if (!res.ok) {
-    throw new Error(
-      `The waifu.pics API is not available at the moment. Status code: ${res.status}`
-    );
+    throw new ExternalServiceError('waifu.pics', `API request failed with status ${res.status}`, {
+      statusCode: res.status
+    });
   }
 
-  // Validate the response JSON
-  const schema = z.object({
-    url: z.url()
-  });
-
-  const result = schema.safeParse(await res.json());
+  const result = responseSchema.safeParse(await res.json());
   if (!result.success) {
-    throw new Error(
-      `The responsed JSON from waifu.pics is not valid.\n${z.prettifyError(result.error)}`
-    );
+    throw new ExternalServiceError('waifu.pics', 'Invalid response format from API', {
+      context: { errors: result.error.issues }
+    });
   }
+
+  logger.debug('Successfully fetched image', {
+    category: selectedCategory,
+    url: result.data.url
+  });
 
   return {
     url: result.data.url,
@@ -86,7 +101,8 @@ export async function getImage(category?: WaifuCategory): Promise<WaifuImage> {
 const WaifuService = {
   categories,
   titles,
-  getImage
+  getImage,
+  isValidCategory
 };
 
 export default WaifuService;
