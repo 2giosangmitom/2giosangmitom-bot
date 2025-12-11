@@ -100,11 +100,11 @@ OLLAMA_BASE_URL=http://localhost:11434
 
 ### 💬 Discord Commands
 
-| Command          | Usage                           | Description                                              |
-| ---------------- | ------------------------------- | -------------------------------------------------------- |
-| `/waifu`         | `/waifu [category]`             | Get a random cute anime girl image to boost motivation  |
-| `/leetcode`      | `/leetcode [difficulty] [topic]` | Get a random LeetCode problem (with optional filters)   |
-| `/ollama`        | `/ollama question: <your question>` | Ask AI a question using local Ollama + llama3.2 model  |
+| Command     | Usage                               | Description                                            |
+| ----------- | ----------------------------------- | ------------------------------------------------------ |
+| `/waifu`    | `/waifu [category]`                 | Get a random cute anime girl image to boost motivation |
+| `/leetcode` | `/leetcode [difficulty] [topic]`    | Get a random LeetCode problem (with optional filters)  |
+| `/ollama`   | `/ollama question: <your question>` | Ask AI a question using local Ollama + llama3.2 model  |
 
 ### 🤖 Setting Up Ollama (AI Feature)
 
@@ -113,11 +113,13 @@ To use the `/ollama` AI command, you need to have Ollama installed and running:
 1. **Install Ollama** from [ollama.ai](https://ollama.ai)
 
 2. **Pull the llama3.2 model**:
+
    ```bash
    ollama pull llama3.2
    ```
 
 3. **Start Ollama server** (usually runs on `http://localhost:11434` by default):
+
    ```bash
    ollama serve
    ```
@@ -187,13 +189,13 @@ Thanks to all the amazing contributors 💛
 
 Special thanks to the awesome libraries and APIs that power this bot:
 
-| Name                                                     | Description                                   |
-| -------------------------------------------------------- | --------------------------------------------- |
-| 🥟 [Bun](https://bun.sh/)                                | A blazingly fast JavaScript runtime           |
-| 🤖 [Discord.js](https://discord.js.org/)                 | The best Discord library for Node.js          |
-| 🌸 [waifu.pics](https://waifu.pics/)                     | Cute anime images to keep us motivated!       |
-| 🧠 [Ollama](https://ollama.ai/)                          | Run LLMs locally (llama3.2)                   |
-| 🧠 [GitHub Copilot](https://github.com/features/copilot) | My AI pair programmer bestie! 💜              |
+| Name                                                     | Description                             |
+| -------------------------------------------------------- | --------------------------------------- |
+| 🥟 [Bun](https://bun.sh/)                                | A blazingly fast JavaScript runtime     |
+| 🤖 [Discord.js](https://discord.js.org/)                 | The best Discord library for Node.js    |
+| 🌸 [waifu.pics](https://waifu.pics/)                     | Cute anime images to keep us motivated! |
+| 🧠 [Ollama](https://ollama.ai/)                          | Run LLMs locally (llama3.2)             |
+| 🧠 [GitHub Copilot](https://github.com/features/copilot) | My AI pair programmer bestie! 💜        |
 
 ---
 
