@@ -3,6 +3,7 @@ import { z } from 'zod';
 const envSchema = z.object({
   TOKEN: z.string().min(1, 'Discord bot token is required'),
   CLIENT_ID: z.string().min(1, 'Discord client ID is required'),
+  OLLAMA_BASE_URL: z.string().default('http://localhost:11434'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info')
 });

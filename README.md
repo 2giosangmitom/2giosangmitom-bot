@@ -52,6 +52,22 @@ Fresh LeetCode data every day at 2:00 AM UTC. Always stay up-to-date with the la
 
 </td>
 </tr>
+<tr>
+<td width="50%" valign="top">
+
+### 🤖 AI Assistant
+
+Ask questions to a local AI powered by Ollama and llama3.2. Get instant answers without leaving Discord!
+
+</td>
+<td width="50%" valign="top">
+
+### ⚡ Local Processing
+
+All AI computations run locally on your machine. Fast, private, and no cloud dependencies!
+
+</td>
+</tr>
 </table>
 
 ---
@@ -67,6 +83,7 @@ First, create an `.env` file in the project root:
 ```env
 TOKEN=your-bot-token
 CLIENT_ID=your-application-id
+OLLAMA_BASE_URL=http://localhost:11434
 ```
 
 ### 🖋 Commands
@@ -80,6 +97,37 @@ CLIENT_ID=your-application-id
 | Type check           | `bun run typecheck` | Run TypeScript type checking          |
 | Format code          | `bun run format`    | Format all source files with Prettier |
 | Lint code            | `bun run lint`      | Lint all source files with ESLint     |
+
+### 💬 Discord Commands
+
+| Command          | Usage                           | Description                                              |
+| ---------------- | ------------------------------- | -------------------------------------------------------- |
+| `/waifu`         | `/waifu [category]`             | Get a random cute anime girl image to boost motivation  |
+| `/leetcode`      | `/leetcode [difficulty] [topic]` | Get a random LeetCode problem (with optional filters)   |
+| `/ollama`        | `/ollama question: <your question>` | Ask AI a question using local Ollama + llama3.2 model  |
+
+### 🤖 Setting Up Ollama (AI Feature)
+
+To use the `/ollama` AI command, you need to have Ollama installed and running:
+
+1. **Install Ollama** from [ollama.ai](https://ollama.ai)
+
+2. **Pull the llama3.2 model**:
+   ```bash
+   ollama pull llama3.2
+   ```
+
+3. **Start Ollama server** (usually runs on `http://localhost:11434` by default):
+   ```bash
+   ollama serve
+   ```
+
+4. **Configure in `.env`** (optional, defaults to localhost):
+   ```env
+   OLLAMA_BASE_URL=http://localhost:11434
+   ```
+
+The bot will automatically check if Ollama is available and report if the service is not running.
 
 ### 🐳 Docker
 
@@ -139,12 +187,13 @@ Thanks to all the amazing contributors 💛
 
 Special thanks to the awesome libraries and APIs that power this bot:
 
-| Name                                                     | Description                             |
-| -------------------------------------------------------- | --------------------------------------- |
-| 🥟 [Bun](https://bun.sh/)                                | A blazingly fast JavaScript runtime     |
-| 🤖 [Discord.js](https://discord.js.org/)                 | The best Discord library for Node.js    |
-| 🌸 [waifu.pics](https://waifu.pics/)                     | Cute anime images to keep us motivated! |
-| 🧠 [GitHub Copilot](https://github.com/features/copilot) | My AI pair programmer bestie! 💜        |
+| Name                                                     | Description                                   |
+| -------------------------------------------------------- | --------------------------------------------- |
+| 🥟 [Bun](https://bun.sh/)                                | A blazingly fast JavaScript runtime           |
+| 🤖 [Discord.js](https://discord.js.org/)                 | The best Discord library for Node.js          |
+| 🌸 [waifu.pics](https://waifu.pics/)                     | Cute anime images to keep us motivated!       |
+| 🧠 [Ollama](https://ollama.ai/)                          | Run LLMs locally (llama3.2)                   |
+| 🧠 [GitHub Copilot](https://github.com/features/copilot) | My AI pair programmer bestie! 💜              |
 
 ---
 

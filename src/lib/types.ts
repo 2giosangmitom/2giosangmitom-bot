@@ -15,6 +15,6 @@ export interface CommandModule {
   default: Command;
 }
 
-export type CommandName = 'waifu' | 'leetcode';
+export type CommandName = 'waifu' | 'leetcode' | 'ollama';
 
-export const COMMAND_MODULES: readonly CommandName[] = ['waifu', 'leetcode'] as const;
+export const COMMAND_MODULES: readonly CommandName[] = ['waifu', 'leetcode', 'ollama'] as const;
