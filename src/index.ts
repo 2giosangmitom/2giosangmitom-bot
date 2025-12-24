@@ -2,6 +2,8 @@ import { SapphireClient } from "@sapphire/framework";
 import { GatewayIntentBits, REST, Routes } from "discord.js";
 import "@sapphire/plugin-logger/register";
 import { config } from "./config.js";
+import { loadFromFile } from "./services/leetcode.service.js";
+import { registerLeetCodeRefreshJob } from "./jobs/leetcode-refresh.job.js";
 
 const client = new SapphireClient({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
@@ -26,6 +28,12 @@ async function main(): Promise<void> {
     client.logger.info("Starting bot...");
     client.logger.info(`Client ID: ${config.clientId}`);
     client.logger.info(`Ollama URL: ${config.ollamaBaseUrl}`);
+
+    // Load LeetCode problems from file into memory
+    await loadFromFile();
+
+    // Register cron job for daily refresh
+    registerLeetCodeRefreshJob();
 
     // Clear old commands before login (which triggers command registration)
     await clearApplicationCommands();

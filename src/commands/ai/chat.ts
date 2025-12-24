@@ -2,7 +2,7 @@ import { Command } from "@sapphire/framework";
 import { OllamaService } from "../../services/ollama.service.js";
 import { config } from "../../config.js";
 import { createTimer } from "../../utils/timer.js";
-import { splitMessage, DISCORD_MESSAGE_LIMIT } from "../../utils/message.js";
+import { splitMessage } from "../../utils/message.js";
 
 const ALLOWED_MODELS = [
   { name: "Llama 3.2 (3B)", value: "llama3.2:3b" },
@@ -66,8 +66,7 @@ export class ChatCommand extends Command {
     try {
       const response = await this.ollamaService.chat(prompt, model);
 
-      const header = `🧠 **AI Response** (${response.model})\n⏱️ Response time: ${response.elapsedMs} ms\n\n`;
-      const chunks = this.formatReplyChunks(header, response.content);
+      const chunks = splitMessage(response.content);
 
       // Send first chunk as edit reply
       await interaction.editReply(chunks[0]!);
@@ -90,29 +89,5 @@ export class ChatCommand extends Command {
         content: `❌ Failed to get AI response: ${errorMessage}`,
       });
     }
-  }
-
-  private formatReplyChunks(header: string, content: string): string[] {
-    const headerLength = header.length;
-    const firstChunkContentLimit = DISCORD_MESSAGE_LIMIT - headerLength;
-
-    if (content.length <= firstChunkContentLimit) {
-      return [header + content];
-    }
-
-    // Split content into chunks
-    const contentChunks = splitMessage(content, DISCORD_MESSAGE_LIMIT - 50); // Leave room for continuation markers
-
-    // First chunk includes header
-    const result: string[] = [header + contentChunks[0]!];
-
-    // Remaining chunks with continuation indicator
-    for (let i = 1; i < contentChunks.length; i++) {
-      result.push(
-        `*(continued ${i + 1}/${contentChunks.length})*\n\n${contentChunks[i]!}`,
-      );
-    }
-
-    return result;
   }
 }

@@ -1,133 +1,117 @@
 # 2giosangmitom-bot
 
-A Discord bot built with Sapphire Framework and Ollama AI integration.
+A personal Discord bot for LeetCode practice, anime images, and AI chat.
 
 ## Features
 
-- 🤖 AI-powered chat using Ollama
-- ⏱️ Response time measurement
-- 📝 Beautiful structured logging
-- 🔧 TypeScript with strict mode
+### 🧠 LeetCode Random Problem
 
-## Prerequisites
+- Fetches free LeetCode problems via GraphQL API
+- Caches problems in `data/leetcode.json` and memory
+- Daily automatic refresh at 2:00 AM via cron job
+- Optional filtering by difficulty (Easy / Medium / Hard)
+- Topic category autocomplete powered by Fuse.js
+- Shows motivational waifu image for Hard problems
 
-- Node.js 25+
-- npm
-- Ollama running locally or remotely
-- Discord Bot Token
+### 🎨 Waifu Images
 
-## Installation
+- Random anime images from [waifu.pics](https://waifu.pics)
+- SFW categories only
+- Category selection via slash command
+
+### 🤖 AI Chat
+
+- Local AI chat via [Ollama](https://ollama.ai)
+- Supports `llama3.2:3b` and `qwen2.5:3b` models
+- Stateless (no conversation memory)
+
+## Tech Stack
+
+- **Runtime**: Node.js 25+
+- **Language**: TypeScript (strict mode)
+- **Framework**: Sapphire Framework + discord.js
+- **AI**: Ollama (local)
+- **Build**: SWC
+- **Testing**: node:test
+- **Other**: Fuse.js, node-cron
+
+## Setup
 
 ```bash
+# Clone repository
+git clone https://github.com/2giosangmitom/2giosangmitom-bot.git
+cd 2giosangmitom-bot
+
+# Install dependencies
 npm install
-```
 
-## Configuration
-
-Copy `.env.example` to `.env` and fill in the values:
-
-```bash
+# Create environment file
 cp .env.example .env
-```
+# Edit .env with your values
 
-Required environment variables:
-
-| Variable | Description |
-|----------|-------------|
-| `BOT_TOKEN` | Your Discord bot token |
-| `CLIENT_ID` | Your Discord application client ID |
-| `OLLAMA_BASE_URL` | Ollama API URL (e.g., `http://localhost:11434`) |
-
-## Development
-
-### Build
-
-```bash
+# Build
 npm run build
-```
 
-### Type Check
-
-```bash
-npm run typecheck
-```
-
-### Run Tests
-
-```bash
-npm test
-```
-
-### Start Bot
-
-```bash
+# Start
 npm start
 ```
 
-### Development Mode
+## Environment Variables
 
-```bash
-npm run dev
-```
+| Variable          | Description                                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| `BOT_TOKEN`       | Discord bot token from [Discord Developer Portal](https://discord.com/developers/applications) |
+| `CLIENT_ID`       | Discord application client ID                                                                  |
+| `OLLAMA_BASE_URL` | Ollama API endpoint (e.g., `http://localhost:11434`)                                           |
 
 ## Commands
 
-### `/chat`
-
-Chat with AI using Ollama.
-
-**Options:**
-- `prompt` (required): Your message to the AI
-- `model` (optional): Ollama model to use (default: llama3.2)
-
-**Example Response:**
-
-```
-🧠 AI Response (llama3.2)
-⏱️ Response time: 1324 ms
-
-Hello! I'm an AI assistant...
-```
+| Command     | Description                                                                   |
+| ----------- | ----------------------------------------------------------------------------- |
+| `/chat`     | Chat with Ollama AI. Options: `prompt` (required), `model` (optional)         |
+| `/waifu`    | Get random anime image. Options: `category` (optional)                        |
+| `/leetcode` | Get random LeetCode problem. Options: `difficulty`, `category` (autocomplete) |
 
 ## Project Structure
 
 ```
-.
-├── src/
-│   ├── commands/
-│   │   └── ai/
-│   │       └── chat.ts       # Chat command
-│   ├── services/
-│   │   └── ollama.service.ts # Ollama API client
-│   ├── utils/
-│   │   └── timer.ts          # Timing utilities
-│   ├── config.ts             # Environment configuration
-│   └── index.ts              # Bot entry point
-├── test/
-│   ├── commands/
-│   │   └── chat.test.ts
-│   ├── services/
-│   │   └── ollama.test.ts
-│   └── utils/
-│       └── timer.test.ts
-├── .github/
-│   └── workflows/
-│       └── ci.yml            # GitHub Actions CI
-├── .env.example
-├── .swcrc                    # SWC configuration
-├── tsconfig.json             # TypeScript configuration
-└── package.json
+src/
+├── commands/
+│   ├── ai/
+│   │   └── chat.ts
+│   └── fun/
+│       ├── leetcode.ts
+│       └── waifu.ts
+├── services/
+│   ├── leetcode.service.ts
+│   ├── ollama.service.ts
+│   └── waifu.service.ts
+├── jobs/
+│   └── leetcode-refresh.job.ts
+├── utils/
+│   ├── leetcode-category-fuse.ts
+│   ├── message.ts
+│   └── timer.ts
+├── config.ts
+└── index.ts
+
+data/
+└── leetcode.json
+
+test/
+├── commands/
+├── jobs/
+├── services/
+└── utils/
 ```
 
-## Tech Stack
+## Design Principles
 
-- **Runtime:** Node.js 25+
-- **Language:** TypeScript (strict mode)
-- **Framework:** Sapphire Framework
-- **Discord Library:** discord.js
-- **AI Backend:** Ollama
-- **Build Tool:** SWC
-- **Testing:** node:test
+- **Local-first**: Ollama runs locally, no external AI APIs
+- **No database**: JSON file + in-memory cache
+- **Minimal scope**: Three features, done well
+- **Fast**: In-memory problem cache for instant responses
+- **Personal use**: Optimized for single-user productivity
 
 ## License
 
