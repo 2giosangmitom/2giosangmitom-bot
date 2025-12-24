@@ -112,7 +112,3 @@ test/
 - **Minimal scope**: Three features, done well
 - **Fast**: In-memory problem cache for instant responses
 - **Personal use**: Optimized for single-user productivity
-
-## License
-
-MIT
