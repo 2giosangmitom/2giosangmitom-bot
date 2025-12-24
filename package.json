@@ -1,0 +1,41 @@
+{
+  "name": "2giosangmitom-bot",
+  "version": "1.0.0",
+  "description": "Discord bot using Sapphire Framework with Ollama AI integration",
+  "type": "module",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=25.0.0"
+  },
+  "scripts": {
+    "build": "swc src -d dist --strip-leading-paths",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "dev": "npm run build && npm run start",
+    "test": "node --test --import @swc-node/register/esm-register test/**/*.test.ts",
+    "lint": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\""
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "sapphire",
+    "ollama",
+    "ai"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@sapphire/framework": "^5.4.0",
+    "@sapphire/plugin-logger": "^4.1.0",
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@swc-node/register": "^1.11.1",
+    "@swc/cli": "^0.7.9",
+    "@swc/core": "^1.15.7",
+    "@types/node": "^25.0.3",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3"
+  }
+}
