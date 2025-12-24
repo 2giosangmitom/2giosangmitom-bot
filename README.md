@@ -95,9 +95,6 @@ src/
 ├── config.ts
 └── index.ts
 
-data/
-└── leetcode.json
-
 test/
 ├── commands/
 ├── jobs/
