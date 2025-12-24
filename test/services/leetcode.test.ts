@@ -1,12 +1,6 @@
 import { describe, it, mock, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 
-// Mock the container before importing the service
-const mockLogger = {
-  info: mock.fn(),
-  error: mock.fn(),
-};
-
 // We'll use dynamic imports to test the service
 describe("LeetCodeService", () => {
   let originalFetch: typeof globalThis.fetch;
@@ -416,7 +410,7 @@ describe("LeetCodeService", () => {
 
   describe("paid problem filtering", () => {
     it("should never include paidOnly problems in cache", async () => {
-      const { setCache, getRandomProblem, getCacheSize, clearCache } =
+      const { setCache, getRandomProblem, clearCache } =
         await import("../../src/services/leetcode.service.js");
 
       // Simulate what the service does after filtering
