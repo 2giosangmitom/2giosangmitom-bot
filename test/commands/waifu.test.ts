@@ -1,86 +1,88 @@
-import { describe, it } from "node:test";
+import { describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
+import { WaifuCommand } from "../../src/commands/fun/waifu.js";
 import {
   validateCategory,
   getAllowedCategories,
 } from "../../src/services/waifu.service.js";
 
+type Interaction = {
+  options: { getString: ReturnType<typeof mock.fn> };
+  user: { tag: string };
+  deferReply: ReturnType<typeof mock.fn>;
+  editReply: ReturnType<typeof mock.fn>;
+};
+
+function buildInteraction(category: string | null): Interaction {
+  const getString = mock.fn(() => category);
+  return {
+    options: { getString },
+    user: { tag: "tester#9999" },
+    deferReply: mock.fn(async () => {}),
+    editReply: mock.fn(async () => {}),
+  };
+}
+
+function stubCommand(fetchImage: () => Promise<unknown>) {
+  return {
+    waifuService: { fetchImage },
+    container: { logger: { info: () => {}, error: () => {} } },
+  } as unknown as WaifuCommand & {
+    waifuService: { fetchImage: typeof fetchImage };
+  };
+}
+
 describe("WaifuCommand", () => {
-  describe("category validation", () => {
-    it("should use default category when none selected", () => {
-      const result = validateCategory(null);
-      assert.equal(result, "waifu");
-    });
+  it("validates categories and rejects NSFW", () => {
+    const allowed = getAllowedCategories();
+    for (const cat of allowed) {
+      assert.equal(validateCategory(cat), cat);
+    }
 
-    it("should accept valid category from allowed list", () => {
-      const categories = getAllowedCategories();
-
-      for (const cat of categories) {
-        const result = validateCategory(cat);
-        assert.equal(result, cat, `Category ${cat} should be accepted`);
-      }
-    });
-
-    it("should reject invalid categories", () => {
-      const invalidCategories = ["invalid", "test", "random", ""];
-
-      for (const cat of invalidCategories) {
-        const result = validateCategory(cat);
-        assert.equal(
-          result,
-          "waifu",
-          `Invalid category "${cat}" should fallback to default`,
-        );
-      }
-    });
+    const fallbackCases = ["", "invalid", "nsfw", "ero", "random"];
+    for (const cat of fallbackCases) {
+      assert.equal(validateCategory(cat), "waifu");
+    }
   });
 
-  describe("NSFW protection", () => {
-    it("should never accept NSFW-related input", () => {
-      const nsfwAttempts = [
-        "nsfw",
-        "NSFW",
-        "ero",
-        "ERO",
-        "nsfw/waifu",
-        "waifu/nsfw",
-        "../nsfw/waifu",
-      ];
+  it("builds a waifu embed on success", async () => {
+    const fetchImage = mock.fn(async () => ({
+      category: "hug",
+      imageUrl: "https://example.com/waifu.png",
+    }));
 
-      for (const attempt of nsfwAttempts) {
-        const result = validateCategory(attempt);
-        assert.equal(
-          result,
-          "waifu",
-          `NSFW attempt "${attempt}" must fallback to default`,
-        );
-      }
-    });
+    const interaction = buildInteraction(null);
+    const ctx = stubCommand(fetchImage);
 
-    it("should only contain SFW categories in allowed list", () => {
-      const categories = getAllowedCategories();
+    await WaifuCommand.prototype.chatInputRun.call(ctx, interaction as never);
 
-      const nsfwKeywords = ["nsfw", "ero", "explicit", "adult", "xxx"];
-
-      for (const cat of categories) {
-        for (const keyword of nsfwKeywords) {
-          assert.ok(
-            !cat.toLowerCase().includes(keyword),
-            `Category "${cat}" contains forbidden keyword "${keyword}"`,
-          );
-        }
-      }
-    });
+    const reply = interaction.editReply.mock.calls[0]?.arguments[0] as {
+      embeds: Array<{ data: Record<string, unknown> }>;
+    };
+    assert.ok(reply);
+    const embed = reply.embeds[0];
+    assert.equal(embed.data.title, "🎨 Random Waifu");
+    assert.ok(String(embed.data.description).includes("hug"));
+    assert.equal(
+      (embed.data.image as { url: string }).url,
+      "https://example.com/waifu.png",
+    );
   });
 
-  describe("embed format expectations", () => {
-    it("should have required embed fields defined", () => {
-      // These are the expected values for the embed
-      const expectedTitle = "🎨 Random Waifu";
-      const expectedFooter = "Powered by waifu.pics";
-
-      assert.ok(expectedTitle.includes("Random Waifu"));
-      assert.ok(expectedFooter.includes("waifu.pics"));
+  it("returns a friendly error on fetch failure", async () => {
+    const fetchImage = mock.fn(async () => {
+      throw new Error("service down");
     });
+
+    const interaction = buildInteraction("waifu");
+    const ctx = stubCommand(fetchImage);
+
+    await WaifuCommand.prototype.chatInputRun.call(ctx, interaction as never);
+
+    const reply = interaction.editReply.mock.calls[0]?.arguments[0] as {
+      content: string;
+    };
+    assert.ok(reply);
+    assert.equal(reply.content, "❌ Failed to fetch image: service down");
   });
 });

@@ -1,48 +1,96 @@
-import { describe, it, mock } from "node:test";
+import { afterEach, describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
 
-describe("LeetCodeRefreshJob", () => {
-  describe("cron schedule", () => {
-    it("should use correct cron expression for 2:00 AM daily", () => {
-      // The cron expression for 2:00 AM daily is: 0 2 * * *
-      const cronExpression = "0 2 * * *";
+function stubLogger() {
+  return {
+    info: mock.fn(() => {}),
+    error: mock.fn(() => {}),
+    warn: mock.fn(() => {}),
+    trace: mock.fn(() => {}),
+    fatal: mock.fn(() => {}),
+    debug: mock.fn(() => {}),
+  };
+}
 
-      // Parse the expression
-      const parts = cronExpression.split(" ");
-      assert.equal(parts.length, 5);
-      assert.equal(parts[0], "0"); // Minute: 0
-      assert.equal(parts[1], "2"); // Hour: 2 (2 AM)
-      assert.equal(parts[2], "*"); // Day of month: any
-      assert.equal(parts[3], "*"); // Month: any
-      assert.equal(parts[4], "*"); // Day of week: any
-    });
+describe("LeetCodeRefreshJob", () => {
+  afterEach(() => {
+    mock.restoreAll();
+    mock.reset();
   });
 
-  describe("job behavior", () => {
-    it("should call refreshProblems when triggered", async () => {
-      // This is a behavioral test - the job should call refreshProblems
-      const mockRefresh = mock.fn(async () => {});
+  it("schedules cron and runs refresh", async () => {
+    let scheduledHandler: (() => Promise<void>) | undefined;
+    const cron = await import("node-cron");
+    const schedule = mock.method(
+      cron.default,
+      "schedule",
+      (expr: string, handler: () => Promise<void>) => {
+        scheduledHandler = handler;
+        return { stop: mock.fn() } as unknown as ReturnType<
+          typeof cron.default.schedule
+        >;
+      },
+    );
 
-      // Simulate what the job does
-      await mockRefresh();
+    const logger = stubLogger();
+    const sapphire = await import("@sapphire/framework");
+    sapphire.container.logger =
+      logger as unknown as typeof sapphire.container.logger;
 
-      assert.equal(mockRefresh.mock.calls.length, 1);
-    });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mock.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: { problemsetQuestionListV2: { questions: [], totalLength: 0 } },
+      }),
+    })) as unknown as typeof fetch;
 
-    it("should handle refresh errors gracefully", async () => {
-      const mockRefresh = mock.fn(async () => {
-        throw new Error("Network error");
-      });
+    const { registerLeetCodeRefreshJob } =
+      await import("../../src/jobs/leetcode-refresh.job.js");
 
-      let errorCaught = false;
+    registerLeetCodeRefreshJob();
 
-      try {
-        await mockRefresh();
-      } catch {
-        errorCaught = true;
-      }
+    assert.equal(schedule.mock.calls[0]?.arguments[0], "0 2 * * *");
+    await scheduledHandler?.();
+    globalThis.fetch = originalFetch;
 
-      assert.equal(errorCaught, true);
-    });
+    assert.ok(logger.info.mock.calls.length > 0);
+  });
+
+  it("logs errors when refresh fails", async () => {
+    let scheduledHandler: (() => Promise<void>) | undefined;
+    const cron = await import("node-cron");
+    mock.method(
+      cron.default,
+      "schedule",
+      (_expr: string, handler: () => Promise<void>) => {
+        scheduledHandler = handler;
+        return { stop: mock.fn() } as unknown as ReturnType<
+          typeof cron.default.schedule
+        >;
+      },
+    );
+
+    const logger = stubLogger();
+    const sapphire = await import("@sapphire/framework");
+    sapphire.container.logger =
+      logger as unknown as typeof sapphire.container.logger;
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mock.fn(async () => ({
+      ok: false,
+      status: 500,
+      text: async () => "boom",
+    })) as unknown as typeof fetch;
+
+    const { registerLeetCodeRefreshJob } =
+      await import("../../src/jobs/leetcode-refresh.job.js");
+
+    registerLeetCodeRefreshJob();
+    await scheduledHandler?.();
+
+    globalThis.fetch = originalFetch;
+
+    assert.ok(logger.error.mock.calls.length > 0);
   });
 });

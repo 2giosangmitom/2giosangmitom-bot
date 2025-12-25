@@ -1,78 +1,103 @@
-import { describe, it } from "node:test";
+import { describe, it, mock, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import { ChatCommand } from "../../src/commands/ai/chat.js";
 
-describe("ChatCommand", () => {
-  describe("formatReply", () => {
-    it("should format reply with model and timing information", () => {
-      const content = "Hello, I am an AI assistant.";
-      const model = "llama3.2";
-      const elapsedMs = 1234;
+type Interaction = {
+  options: { getString: ReturnType<typeof mock.fn> };
+  user: { tag: string };
+  deferReply: ReturnType<typeof mock.fn>;
+  editReply: ReturnType<typeof mock.fn>;
+  followUp: ReturnType<typeof mock.fn>;
+};
 
-      // Test the expected format
-      const expectedFormat = `🧠 **AI Response** (${model})\n⏱️ Response time: ${elapsedMs} ms\n\n${content}`;
-
-      // Verify the format structure
-      assert.ok(expectedFormat.includes("🧠 **AI Response**"));
-      assert.ok(expectedFormat.includes(model));
-      assert.ok(expectedFormat.includes(`${elapsedMs} ms`));
-      assert.ok(expectedFormat.includes(content));
-    });
-
-    it("should truncate long content", () => {
-      const longContent = "A".repeat(2000);
-      const maxLength = 1900;
-
-      const truncatedContent =
-        longContent.length > maxLength
-          ? `${longContent.substring(0, maxLength)}...`
-          : longContent;
-
-      assert.equal(truncatedContent.length, maxLength + 3); // 1900 + '...'
-      assert.ok(truncatedContent.endsWith("..."));
-    });
-
-    it("should not truncate short content", () => {
-      const shortContent = "Short response";
-      const maxLength = 1900;
-
-      const result =
-        shortContent.length > maxLength
-          ? `${shortContent.substring(0, maxLength)}...`
-          : shortContent;
-
-      assert.equal(result, shortContent);
-    });
+function buildInteraction(prompt: string, model?: string): Interaction {
+  const getString = mock.fn((name: string) => {
+    if (name === "prompt") return prompt;
+    if (name === "model") return model ?? null;
+    return null;
   });
 
-  describe("reply format", () => {
-    it("should include all required elements", () => {
-      const model = "llama3.2";
-      const elapsedMs = 500;
-      const content = "Test response";
+  return {
+    options: { getString },
+    user: { tag: "tester#1234" },
+    deferReply: mock.fn(async () => {}),
+    editReply: mock.fn(async () => {}),
+    followUp: mock.fn(async () => {}),
+  };
+}
 
-      const reply = `🧠 **AI Response** (${model})\n⏱️ Response time: ${elapsedMs} ms\n\n${content}`;
+function buildContext(ollamaService: {
+  chat: (...args: unknown[]) => Promise<unknown>;
+}) {
+  return {
+    ollamaService,
+    container: { logger: { info: () => {}, error: () => {} } },
+  } as unknown as ChatCommand & {
+    ollamaService: typeof ollamaService;
+  };
+}
 
-      // Verify brain emoji for AI indicator
-      assert.ok(reply.startsWith("🧠"));
+describe("ChatCommand", () => {
+  afterEach(() => {
+    mock.restoreAll();
+    mock.reset();
+  });
 
-      // Verify model name in parentheses
-      assert.ok(reply.includes(`(${model})`));
+  it("sends first chunk then follow-ups", async () => {
+    const interaction = buildInteraction("hello world");
+    const ollamaResponse = {
+      content: "A".repeat(2100),
+      model: "llama3.2:3b",
+      elapsedMs: 42,
+    };
 
-      // Verify timing with clock emoji
-      assert.ok(reply.includes("⏱️ Response time:"));
-      assert.ok(reply.includes(`${elapsedMs} ms`));
+    const ollamaService = {
+      chat: mock.fn(async () => ollamaResponse),
+    };
 
-      // Verify content is present
-      assert.ok(reply.includes(content));
-    });
+    const ctx = buildContext(ollamaService);
+    await ChatCommand.prototype.chatInputRun.call(ctx, interaction as never);
 
-    it("should handle various elapsed times", () => {
-      const testCases = [0, 1, 100, 1000, 5000, 99999];
+    const firstCall = ollamaService.chat.mock.calls[0];
+    assert.ok(firstCall, "chat should be called once");
+    assert.equal(firstCall.arguments.at(0), "hello world");
+    assert.equal(firstCall.arguments.at(1), "llama3.2:3b");
 
-      for (const elapsedMs of testCases) {
-        const reply = `⏱️ Response time: ${elapsedMs} ms`;
-        assert.ok(reply.includes(`${elapsedMs} ms`));
-      }
-    });
+    assert.equal(interaction.deferReply.mock.calls.length, 1);
+    assert.equal(interaction.editReply.mock.calls.length, 1);
+    assert.equal(interaction.followUp.mock.calls.length, 1);
+
+    const firstChunk = interaction.editReply.mock.calls[0]
+      ?.arguments[0] as string;
+    const secondChunk = interaction.followUp.mock.calls[0]
+      ?.arguments[0] as string;
+
+    assert.ok(firstChunk.length <= 2000);
+    assert.equal(
+      firstChunk.length + secondChunk.length,
+      ollamaResponse.content.length,
+    );
+  });
+
+  it("returns a friendly error when Ollama fails", async () => {
+    const interaction = buildInteraction("bad prompt");
+    const ollamaService = {
+      chat: mock.fn(async () => {
+        throw new Error("API offline");
+      }),
+    };
+
+    const ctx = buildContext(ollamaService);
+    await ChatCommand.prototype.chatInputRun.call(ctx, interaction as never);
+
+    const errorPayload = interaction.editReply.mock.calls[0]?.arguments[0] as {
+      content: string;
+    };
+    assert.ok(errorPayload);
+    assert.equal(
+      errorPayload.content,
+      "❌ Failed to get AI response: API offline",
+    );
+    assert.equal(interaction.followUp.mock.calls.length, 0);
   });
 });
